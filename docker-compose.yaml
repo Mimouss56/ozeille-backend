@@ -1,0 +1,33 @@
+services:
+  users-api:
+    build:
+      context: ./apps/users-service
+      dockerfile: docker/Dockerfile
+      target: development
+    container_name: users-api
+    volumes:
+      - ./apps/users-service:/home/node/app
+    ports:
+      - ${USERS_API_PORT:-3000}:3000
+    depends_on:
+      database:
+         condition: service_healthy
+
+  database:
+    image: postgres:17
+    container_name: users-db
+    environment:
+      POSTGRES_PASSWORD: ${USERS_DB_PASSWORD:-ozeille}
+      POSTGRES_USER: ${USERS_DB_USER:-ozeille}
+      POSTGRES_DB: ${USERS_DB_DB:-ozeille}
+    volumes:
+      - user-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER}" ]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 80s
+
+volumes:
+  user-db-data:
