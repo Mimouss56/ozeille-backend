@@ -24,3 +24,19 @@ Pour le lancer en mode détaché :
 docker-compose up -d
 ```
 
+## Installation de dépendances
+
+Pour installer de nouvelles dépendances, vous pouvez vous connecter directement dans le containeur avec la commande :
+
+```shell
+docker compose exec storybook sh
+```
+
+Sinon, vous pouvez installer directement avec la commande suivante :
+
+```shell
+docker compose exec <container> npm i <package>
+```
+
+ou `container` est le nom du conteneur et `package` le nom du package.
+
