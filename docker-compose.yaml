@@ -4,22 +4,20 @@ services:
       context: ./apps/users-service
       dockerfile: docker/Dockerfile
       target: development
-    container_name: users-api
     volumes:
       - ./apps/users-service:/home/node/app
     ports:
       - ${USERS_API_PORT:-3000}:3000
     depends_on:
-      database:
+      users-db:
          condition: service_healthy
 
-  database:
+  users-db:
     image: postgres:17
-    container_name: users-db
     environment:
       POSTGRES_PASSWORD: ${USERS_DB_PASSWORD:-ozeille}
       POSTGRES_USER: ${USERS_DB_USER:-ozeille}
-      POSTGRES_DB: ${USERS_DB_DB:-ozeille}
+      POSTGRES_DB: ${USERS_DB_NAME:-ozeille}
     volumes:
       - user-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -29,5 +27,43 @@ services:
       retries: 5
       start_period: 80s
 
+  transactions-api:
+    build:
+      context: ./apps/users-service
+      dockerfile: docker/Dockerfile
+      target: development
+    volumes:
+      - ./apps/transactions-service:/home/node/app
+    ports:
+      - ${TRANSACTIONS_API_PORT:-3001}:3000
+    depends_on:
+      transactions-db:
+        condition: service_healthy
+
+  transactions-db:
+    image: postgres:17
+    environment:
+      POSTGRES_PASSWORD: ${TRANSACTIONS_DB_PASSWORD:-ozeille}
+      POSTGRES_USER: ${TRANSACTIONS_DB_USER:-ozeille}
+      POSTGRES_DB: ${TRANSACTIONS_DB_NAME:-ozeille}
+    volumes:
+      - transaction-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER}" ]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 80s
+
+  redis:
+    image: redis:8-alpine
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - ${MAILPIT_WEB_PORT:-8025}:8025
+      - ${MAILPIT_SMTP_PORT:-1025}:1025
+
 volumes:
   user-db-data:
+  transaction-db-data:
