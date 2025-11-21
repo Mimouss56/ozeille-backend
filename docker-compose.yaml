@@ -36,6 +36,8 @@ services:
       - ./apps/transactions-service:/home/node/app
     ports:
       - ${TRANSACTIONS_API_PORT:-3001}:3000
+    environment:
+      "DATABASE_URL": "postgresql://${TRANSACTIONS_DB_USER:-ozeille}:${TRANSACTIONS_DB_PASSWORD:-ozeille}@transactions-db:5432/${TRANSACTIONS_DB_NAME:-ozeille}?schema=public=value"
     depends_on:
       transactions-db:
         condition: service_healthy
