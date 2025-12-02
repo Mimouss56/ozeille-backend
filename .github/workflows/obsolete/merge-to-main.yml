@@ -1,9 +1,0 @@
-# Archived workflow: merge-to-main.yml
-# Ce fichier a été archivé car la promotion develop->main est maintenant gérée
-# par `develop-pipeline.yml`. Gardé ici pour historique et restauration facile.
-
-# Original content preserved for reference. If you need à restore, replace
-# this file into .github/workflows/merge-to-main.yml
-
-# ---
-# (contenu original supprimé)

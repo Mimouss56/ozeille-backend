@@ -24,17 +24,58 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install
+      - name: Detect changed services & run checks
         run: |
-          npm ci
+          set -euo pipefail
 
-      - name: Lint
-        run: |
-          npm run lint --if-present || true
+          # Ensure we have main for diff comparison
+          git fetch origin main --no-tags || true
 
-      - name: Build
-        run: |
-          npm run build --if-present || true
+          DIFF=$(git diff --name-only origin/main...HEAD || true)
+          echo "Changed paths:\n$DIFF"
+
+          SERVICES_DIR="backend/apps"
+          SERVICES_TO_RUN=()
+
+          for d in "$SERVICES_DIR"/*; do
+            [ -d "$d" ] || continue
+            svc=$(basename "$d")
+            # If any changed file is under this service, schedule it
+            if echo "$DIFF" | grep -q "^$d/"; then
+              SERVICES_TO_RUN+=("$svc")
+            fi
+          done
+
+          # If nothing specific changed under apps, run checks for all services
+          if [ ${#SERVICES_TO_RUN[@]} -eq 0 ]; then
+            echo "No service-specific changes detected — running checks for all services"
+            for d in "$SERVICES_DIR"/*; do
+              [ -d "$d" ] || continue
+              SERVICES_TO_RUN+=("$(basename "$d")")
+            done
+          fi
+
+          echo "Services to run: ${SERVICES_TO_RUN[*]}"
+
+          # Optionally run root-level install/lint if a package.json exists at backend
+          if [ -f backend/package.json ]; then
+            echo "Installing root backend dependencies"
+            (cd backend && npm ci)
+            echo "Running root lint/build if present"
+            (cd backend && npm run lint --if-present) || true
+            (cd backend && npm run build --if-present) || true
+          fi
+
+          for svc in "${SERVICES_TO_RUN[@]}"; do
+            echo "\n--- Running checks for service: $svc ---"
+            if [ -f "$SERVICES_DIR/$svc/package.json" ]; then
+              (cd "$SERVICES_DIR/$svc" && npm ci)
+              (cd "$SERVICES_DIR/$svc" && npm run lint --if-present) || true
+              (cd "$SERVICES_DIR/$svc" && npm test --if-present) || true
+            else
+              echo "No package.json for $svc — skipping npm steps"
+            fi
+          done
 
       - name: Run affected tests
         run: |
@@ -43,8 +84,8 @@ jobs:
 
       - name: SonarQube Scan
         run: |
-          SONAR_TOKEN='${{ secrets.SONAR_TOKEN }}'
-          if [ -z "$SONAR_TOKEN" ]; then
+          SONAR_TOKEN=${{ secrets.SONAR_TOKEN || '""' }}
+          if [ -z "$SONAR_TOKEN" ] || [ "$SONAR_TOKEN" = '""' ]; then
             echo "SONAR_TOKEN not set - skipping SonarQube scan"
             exit 0
           fi
