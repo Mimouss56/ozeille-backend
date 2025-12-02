@@ -1,0 +1,373 @@
+name: Merge develop to main
+permissions:
+  contents: write
+  issues: write
+  actions: read
+  pull-requests: write
+on:
+  workflow_dispatch:
+    inputs:
+      force_merge:
+        description: "Force merge même si pas de nouveaux commits"
+        required: false
+        default: false
+        type: boolean
+      skip_conflict_check:
+        description: "Ignorer la vérification des conflits (dangereux)"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  check-trigger:
+    runs-on: ubuntu-latest
+    outputs:
+      should-merge: ${{ steps.check.outputs.should-merge }}
+      trigger-type: ${{ steps.check.outputs.trigger-type }}
+      force-merge: ${{ steps.check.outputs.force-merge }}
+    steps:
+      - name: Vérifier la condition de déclenchement
+        id: check
+        run: |
+          echo "Event: ${{ github.event_name }}"
+
+          # Ce workflow est manuel (workflow_dispatch). On considère qu'il doit
+          # procéder au merge si l'utilisateur le demande via l'input.
+          echo "Déclenché manuellement"
+          echo "should-merge=true" >> $GITHUB_OUTPUT
+          echo "trigger-type=manual" >> $GITHUB_OUTPUT
+          echo "force-merge=${{ github.event.inputs.force_merge }}" >> $GITHUB_OUTPUT
+
+  pre-merge-checks:
+    needs: check-trigger
+    if: needs.check-trigger.outputs.should-merge == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      commits-ahead: ${{ steps.analyze.outputs.commits-ahead }}
+      ready-to-merge: ${{ steps.analyze.outputs.ready-to-merge }}
+      develop-sha: ${{ steps.analyze.outputs.develop-sha }}
+      main-sha: ${{ steps.analyze.outputs.main-sha }}
+    steps:
+      - name: 🔍 Vérifier l'accès au dépôt
+        run: |
+          set -euo pipefail
+          API_URL="https://api.github.com/repos/${{ github.repository }}"
+          echo "🔍 Vérification accès repo: ${API_URL}"
+          status=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "${API_URL}") || true
+          if [ "$status" != "200" ]; then
+            echo "❌ Accès au dépôt refusé (HTTP $status). Le token ou le repo peut être invalide."
+            exit 1
+          fi
+          echo "✅ Accès au dépôt validé"
+
+      - uses: actions/checkout@v5
+        with:
+          ref: develop
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: 📊 Analyser l'état des branches
+        id: analyze
+        run: |
+          set -euo pipefail
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+          # Récupérer les dernières références
+          git fetch origin develop
+          git fetch origin main
+
+          # Obtenir les SHAs
+          DEVELOP_SHA=$(git rev-parse origin/develop)
+          MAIN_SHA=$(git rev-parse origin/main)
+          echo "develop-sha=$DEVELOP_SHA" >> $GITHUB_OUTPUT
+          echo "main-sha=$MAIN_SHA" >> $GITHUB_OUTPUT
+
+          # Vérifier si develop a des nouveaux commits par rapport à main
+          COMMITS_AHEAD=$(git rev-list --count origin/main..origin/develop)
+          echo "commits-ahead=$COMMITS_AHEAD" >> $GITHUB_OUTPUT
+          echo "📊 Commits dans develop non présents dans main: $COMMITS_AHEAD"
+
+          # Afficher les commits en attente
+          if [ "$COMMITS_AHEAD" -gt "0" ]; then
+            echo "📝 Commits en attente de merge:"
+            git log --oneline origin/main..origin/develop | head -10
+          fi
+
+          # Vérifier si on doit continuer
+          FORCE_MERGE="${{ needs.check-trigger.outputs.force-merge }}"
+          if [ "$COMMITS_AHEAD" = "0" ] && [ "$FORCE_MERGE" != "true" ]; then
+            echo "ℹ️  Aucun nouveau commit dans develop, pas de merge nécessaire"
+            echo "ready-to-merge=false" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Prêt pour le merge"
+            echo "ready-to-merge=true" >> $GITHUB_OUTPUT
+          fi
+
+  merge:
+    needs: [check-trigger, pre-merge-checks]
+    if: needs.pre-merge-checks.outputs.ready-to-merge == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: develop
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: true
+      - name: 🔧 Configuration Git
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git fetch origin develop
+          git fetch origin main
+
+      - name: 🧪 Test de merge (dry-run)
+        if: github.event.inputs.skip_conflict_check != 'true'
+        run: |
+          set -euo pipefail
+          echo "🧪 Test de compatibilité du merge..."
+
+          git checkout main
+          # Test merge sans commit pour détecter les conflits
+          if git merge --no-commit --no-ff origin/develop; then
+            echo "✅ Test de merge réussi - aucun conflit détecté"
+            git merge --abort  # Annuler le test
+          else
+            echo "❌ Conflits détectés lors du test de merge"
+            git merge --abort 2>/dev/null || true
+            
+            # Analyser les conflits
+            echo "📝 Analyse des conflits potentiels..."
+            git merge origin/develop --no-commit --no-ff || true
+            echo "Fichiers en conflit:"
+            git status --porcelain | grep "^UU\|^AA\|^DD" || echo "Aucun conflit de contenu détecté"
+            git merge --abort 2>/dev/null || true
+            
+            echo "conflict-detected=true" >> $GITHUB_ENV
+          fi
+
+      - name: 🚀 Merger develop vers main
+        run: |
+          set -euo pipefail
+
+          DEVELOP_SHA="${{ needs.pre-merge-checks.outputs.develop-sha }}"
+          MAIN_SHA="${{ needs.pre-merge-checks.outputs.main-sha }}"
+          COMMITS_COUNT="${{ needs.pre-merge-checks.outputs.commits-ahead }}"
+          TRIGGER_TYPE="${{ needs.check-trigger.outputs.trigger-type }}"
+
+          echo "🚀 Début du merge develop → main"
+          echo "   Develop SHA: $DEVELOP_SHA"
+          echo "   Main SHA: $MAIN_SHA"
+          echo "   Commits à merger: $COMMITS_COUNT"
+          echo "   Type de déclenchement: $TRIGGER_TYPE"
+
+          git checkout main
+
+          # Si des conflits ont été détectés et qu'on n'ignore pas la vérification
+          if [ "${conflict-detected:-false}" = "true" ] && [ "${{ github.event.inputs.skip_conflict_check }}" != "true" ]; then
+            echo "❌ Merge abandonné à cause des conflits détectés"
+            echo "create-conflict-issue=true" >> $GITHUB_ENV
+            exit 1
+          fi
+
+          # Construire le message de commit
+          COMMIT_MSG="chore: merge develop to main"
+          if [ "$TRIGGER_TYPE" = "manual" ]; then
+            COMMIT_MSG="$COMMIT_MSG (manual trigger)"
+          fi
+
+          COMMIT_BODY="
+          📦 Commits inclus ($COMMITS_COUNT):
+          $(git log --oneline origin/main..origin/develop | head -10)
+
+          🤖 Auto-merged by GitHub Actions
+          📅 Date: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          🔗 Trigger: $TRIGGER_TYPE
+          🆔 Develop SHA: $DEVELOP_SHA"
+
+          # Effectuer le merge
+          if git merge --no-ff origin/develop -m "$COMMIT_MSG" -m "$COMMIT_BODY"; then
+            echo "✅ Merge réussi"
+            
+            # Obtenir le SHA du merge commit
+            MERGE_SHA=$(git rev-parse HEAD)
+            echo "🔗 Merge commit SHA: $MERGE_SHA"
+            
+            git push origin main
+            echo "✅ Push vers main réussi"
+            
+            # Marquer le succès
+            echo "merge-success=true" >> $GITHUB_ENV
+            echo "merge-sha=$MERGE_SHA" >> $GITHUB_ENV
+          else
+            echo "❌ Échec du merge final"
+            git merge --abort 2>/dev/null || true
+            echo "create-conflict-issue=true" >> $GITHUB_ENV
+            exit 1
+          fi
+
+      - name: 🐛 Créer une issue en cas de conflit
+        if: failure()
+        run: |
+          DEVELOP_SHA="${{ needs.pre-merge-checks.outputs.develop-sha }}"
+          COMMITS_COUNT="${{ needs.pre-merge-checks.outputs.commits-ahead }}"
+
+          gh issue create \
+            --title "🚨 Conflit de merge: develop → main" \
+            --body "Le merge automatique de \`develop\` vers \`main\` a échoué à cause de conflits.
+
+          ## 📊 Informations
+          - **Commit SHA de develop**: \`$DEVELOP_SHA\`
+          - **Commits en attente**: $COMMITS_COUNT
+          - **Date**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          - **Déclencheur**: ${{ needs.check-trigger.outputs.trigger-type }}
+          - **Workflow**: [\`${{ github.run_id }}\`](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+          ## 🛠️ Action requise
+          Résolvez manuellement les conflits :
+
+          \`\`\`bash
+          git checkout main
+          git pull origin main
+          git merge develop
+          # Résoudre les conflits dans les fichiers
+          git add .
+          git commit
+          git push origin main
+          \`\`\`
+
+          ## 📝 Commits en attente
+          \`\`\`
+          $(git log --oneline origin/main..origin/develop | head -10)
+          \`\`\`
+
+          ## 🔧 Alternative : Merge manuel via PR
+          Vous pouvez aussi créer une PR de \`develop\` vers \`main\` pour résoudre les conflits via l'interface GitHub." \
+            --assignee ${{ github.actor }} \
+            --label "bug,merge-conflict,urgent" || echo "⚠️ Impossible de créer l'issue"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📊 Résumé du merge
+        if: success()
+        run: |
+          echo "## 🎉 Merge réussi !" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commits mergés**: ${{ needs.pre-merge-checks.outputs.commits-ahead }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Develop SHA**: \`${{ needs.pre-merge-checks.outputs.develop-sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Merge SHA**: \`$(cat /github/workflow/env | grep -E '^merge_sha=' || echo "unknown")\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Déclencheur**: ${{ needs.check-trigger.outputs.trigger-type }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Date**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+  notify-success:
+    needs: [check-trigger, pre-merge-checks, merge]
+    if: success()
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📢 Notification de succès
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const triggerType = '${{ needs.check-trigger.outputs.trigger-type }}';
+            const commitsCount = '${{ needs.pre-merge-checks.outputs.commits-ahead }}';
+            const developSha = '${{ needs.pre-merge-checks.outputs.develop-sha }}';
+
+            console.log(`✅ Merge develop → main réussi !`);
+            console.log(`   Type: ${triggerType}`);
+            console.log(`   Commits: ${commitsCount}`);
+            console.log(`   SHA: ${developSha}`);
+            console.log(`🚀 Les workflows de release se déclencheront automatiquement sur main`);
+
+            // Les workflows release-backend et release-frontend se déclenchent automatiquement
+            // sur push vers main grâce à leurs triggers "on: push: branches: [main]"
+
+  wait-for-releases:
+    needs: notify-success
+    runs-on: ubuntu-latest
+    if: success()
+    timeout-minutes: 15
+    steps:
+      - name: ⏳ Attendre les releases
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // Attendre que les workflows de release se déclenchent et se terminent
+            console.log('⏳ Attente des workflows de release...');
+
+            const maxAttempts = 30;
+            const waitTime = 30000; // 30 secondes
+
+            for (let i = 0; i < maxAttempts; i++) {
+              try {
+                // Vérifier les workflows de release récents
+                const { data: runs } = await github.rest.actions.listWorkflowRuns({
+                  owner,
+                  repo,
+                  workflow_id: 'release-backend.yml',
+                  per_page: 1,
+                  status: 'completed'
+                });
+                
+                const { data: frontendRuns } = await github.rest.actions.listWorkflowRuns({
+                  owner,
+                  repo,
+                  workflow_id: 'release-frontend.yml', 
+                  per_page: 1,
+                  status: 'completed'
+                });
+                
+                if (runs.workflow_runs.length > 0 && frontendRuns.workflow_runs.length > 0) {
+                  const backendStatus = runs.workflow_runs[0].conclusion;
+                  const frontendStatus = frontendRuns.workflow_runs[0].conclusion;
+                  
+                  console.log(`Backend release: ${backendStatus}`);
+                  console.log(`Frontend release: ${frontendStatus}`);
+                  
+                  if (backendStatus === 'success' && frontendStatus === 'success') {
+                    console.log('✅ Releases terminées avec succès');
+                    break;
+                  } else if (backendStatus === 'failure' || frontendStatus === 'failure') {
+                    console.log('❌ Une ou plusieurs releases ont échoué');
+                    core.setFailed('Release failed');
+                    break;
+                  }
+                }
+                
+                console.log(`Tentative ${i + 1}/${maxAttempts} - En attente...`);
+                await new Promise(resolve => setTimeout(resolve, waitTime));
+              } catch (error) {
+                console.log(`Erreur lors de la vérification: ${error.message}`);
+                if (i === maxAttempts - 1) {
+                  console.log('⚠️ Timeout - Les releases prennent plus de temps que prévu');
+                }
+              }
+            }
+
+  portainer_update:
+    needs: wait-for-releases
+    runs-on: ubuntu-latest
+    if: success() || failure() # Execute même si wait-for-releases échoue
+    steps:
+      - name: 🐳 Déclencher le webhook PortainerCE
+        run: |
+          echo "🐳 Déclenchement du webhook Portainer pour le déploiement..."
+
+          PORTAINER_WEBHOOK_URL='${{ secrets.PORTAINER_WEBHOOK_URL }}'
+
+          if [ -n "$PORTAINER_WEBHOOK_URL" ]; then
+            response=$(curl -w "HTTP_CODE:%{http_code}" -X POST "$PORTAINER_WEBHOOK_URL" \
+              -H "Content-Type: application/json" \
+              -d '{"message": "Deployment triggered by merge to main"}' \
+              --max-time 30 || echo "CURL_FAILED")
+            
+            if [[ $response == *"HTTP_CODE:200"* ]] || [[ $response == *"HTTP_CODE:204"* ]]; then
+              echo "✅ Webhook Portainer déclenché avec succès"
+            else
+              echo "⚠️ Webhook Portainer échoué (non critique): $response"
+            fi
+          else
+            echo "⚠️ PORTAINER_WEBHOOK_URL non configuré"
+          fi

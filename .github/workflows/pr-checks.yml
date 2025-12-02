@@ -1,0 +1,49 @@
+name: PR Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+    branches: [develop]
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  pr-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm -w run lint --reporter=stylish || true
+
+      - name: Build
+        run: pnpm -w run build --if-present
+
+      - name: Run affected tests
+        run: |
+          # Placeholder: run tests only for changed packages or modules
+          echo "Running affected tests (implement for monorepo)"
+
+      - name: SonarQube Scan
+        run: |
+          SONAR_TOKEN='${{ secrets.SONAR_TOKEN }}'
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "SONAR_TOKEN not set - skipping SonarQube scan"
+            exit 0
+          fi
+          echo "Run Sonar scanner (placeholder)"

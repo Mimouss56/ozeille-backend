@@ -1,0 +1,115 @@
+name: Develop Pipeline
+
+on:
+  push:
+    branches: [develop]
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+  actions: write
+
+jobs:
+  full-audit:
+    runs-on: ubuntu-latest
+    outputs:
+      dto-changed: ${{ steps.check-dto.outputs.dto-changed }}
+      tag-pushed: ${{ steps.semantic.outputs.tag-pushed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm -w run lint
+
+      - name: Tests (all)
+        run: pnpm -w run test --if-present
+
+      - name: SonarQube Full Scan
+        run: |
+          SONAR_TOKEN='${{ secrets.SONAR_TOKEN }}'
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "SONAR_TOKEN not set - skipping SonarQube full scan"
+            exit 0
+          fi
+          echo "Run Sonar full scan (placeholder)"
+
+      - name: Check DTO changes
+        id: check-dto
+        run: |
+          # Simple heuristic: check if any file under packages/shared-dtos or src/dtos changed.
+          CHANGED=$(git diff --name-only origin/main...HEAD | grep -E "(^packages/shared-dtos/|^src/.*dto)" || true)
+          echo "changed=$CHANGED"
+          if [ -n "$CHANGED" ]; then
+            echo "dto-changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "dto-changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build Shared DTO Library
+        if: steps.check-dto.outputs.dto-changed == 'true'
+        run: |
+          echo "Building shared DTOs"
+          cd packages/shared-dtos || exit 0
+          pnpm publish --access=restricted --no-git-checks --registry https://npm.pkg.github.com || true
+
+      - name: Update dependent package.json
+        if: steps.check-dto.outputs.dto-changed == 'true'
+        run: |
+          echo "Updating dependents to latest @org/shared-dtos"
+          # Implement project-specific update script here
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add package.json pnpm-lock.yaml || true
+          git commit -m "chore: update shared-dtos dependency [skip ci]" || true
+          git push origin HEAD:develop || true
+
+      - name: Docker Build & Push
+        env:
+          DOCKER_REGISTRY: ghcr.io/${{ github.repository_owner }}
+        run: |
+          echo "Building Docker images"
+          # Placeholder: build and push images for services and frontend
+          echo "docker build/push steps here"
+
+      - name: Semantic Release
+        id: semantic
+        run: |
+          echo "Running semantic-release (placeholder)"
+          # If a tag is created/pushed the step can set output
+          echo "tag-pushed=false" >> $GITHUB_OUTPUT
+
+  merge-to-main:
+    needs: full-audit
+    runs-on: ubuntu-latest
+    if: needs.full-audit.outputs.tag-pushed == 'true' || needs.full-audit.outputs.tag-pushed == 'false'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Fast-forward develop -> main
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git fetch origin main
+          git fetch origin develop
+          git checkout main
+          git merge --ff-only origin/develop || {
+            echo "Fast-forward failed (conflict or non-fast-forward)";
+            exit 1;
+          }
+          git push origin main
