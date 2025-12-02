@@ -29,13 +29,19 @@ jobs:
           cache: "pnpm"
 
       - name: Install
-        run: pnpm install --frozen-lockfile
+        run: |
+          cd backend
+          npm ci
 
       - name: Lint
-        run: pnpm -w run lint
+        run: |
+          cd backend
+          npm run lint --if-present
 
       - name: Tests (all)
-        run: pnpm -w run test --if-present
+        run: |
+          cd backend
+          npm test --if-present
 
       - name: SonarQube Full Scan
         run: |
@@ -49,8 +55,8 @@ jobs:
       - name: Check DTO changes
         id: check-dto
         run: |
-          # Simple heuristic: check if any file under packages/shared-dtos or src/dtos changed.
-          CHANGED=$(git diff --name-only origin/main...HEAD | grep -E "(^packages/shared-dtos/|^src/.*dto)" || true)
+          # Detect DTO changes under backend/src/**/<module>/dto/*.dto.ts
+          CHANGED=$(git diff --name-only origin/main...HEAD | grep -E "(^backend/src/.*/dto/.*\.dto\.ts$)" || true)
           echo "changed=$CHANGED"
           if [ -n "$CHANGED" ]; then
             echo "dto-changed=true" >> $GITHUB_OUTPUT
@@ -58,21 +64,41 @@ jobs:
             echo "dto-changed=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build Shared DTO Library
+      - name: Build & Publish DTO package
         if: steps.check-dto.outputs.dto-changed == 'true'
         run: |
-          echo "Building shared DTOs"
-          cd packages/shared-dtos || exit 0
-          pnpm publish --access=restricted --no-git-checks --registry https://npm.pkg.github.com || true
+          echo "DTO changes detected — attempting build & publish"
+          cd backend || exit 0
+          # Build DTOs if a build script exists
+          if npm run | grep -q "build:dtos"; then
+            npm run build:dtos || true
+          fi
+
+          # Publish to npm if NPM_TOKEN is set
+          NPM_TOKEN='${{ secrets.NPM_TOKEN }}'
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "NPM_TOKEN not set - skipping npm publish of DTO package"
+          else
+            echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
+            # If package folder exists, try to publish (adjust path if needed)
+            if [ -d "packages/shared-dtos" ]; then
+              cd packages/shared-dtos
+              npm publish --access restricted || true
+            else
+              echo "No packages/shared-dtos folder found - implement publish steps if needed"
+            fi
+          fi
 
       - name: Update dependent package.json
         if: steps.check-dto.outputs.dto-changed == 'true'
         run: |
-          echo "Updating dependents to latest @org/shared-dtos"
-          # Implement project-specific update script here
+          echo "Updating dependents to latest shared-dtos (manual or script required)"
+          # If you have a script to update dependent packages, run it here.
+          # Example placeholder (implement as needed):
+          # ./scripts/update-dto-dependents.sh
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-          git add package.json pnpm-lock.yaml || true
+          git add package.json package-lock.json || true
           git commit -m "chore: update shared-dtos dependency [skip ci]" || true
           git push origin HEAD:develop || true
 
@@ -82,14 +108,21 @@ jobs:
         run: |
           echo "Building Docker images"
           # Placeholder: build and push images for services and frontend
-          echo "docker build/push steps here"
+          echo "docker build/push steps here (implement using npm scripts or Dockerfiles)"
 
       - name: Semantic Release
         id: semantic
         run: |
-          echo "Running semantic-release (placeholder)"
-          # If a tag is created/pushed the step can set output
-          echo "tag-pushed=false" >> $GITHUB_OUTPUT
+          cd backend
+          NPM_TOKEN='${{ secrets.NPM_TOKEN }}'
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "NPM_TOKEN not set - skipping semantic-release"
+            echo "tag-pushed=false" >> $GITHUB_OUTPUT
+          else
+            echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
+            npx semantic-release || true
+            echo "tag-pushed=false" >> $GITHUB_OUTPUT
+          fi
 
   merge-to-main:
     needs: full-audit
