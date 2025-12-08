@@ -1,6 +1,6 @@
-import { Body, Controller, Post, UsePipes } from "@nestjs/common";
+import { Body, Controller, Post } from "@nestjs/common";
 import { ApiResponse } from "@nestjs/swagger";
-import { ZodValidationPipe } from "src/zod-validation/zod-validation.pipe";
+import { ZodSerializerDto } from "nestjs-zod";
 
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UsersUsecaseRegister } from "./usecases/users.usecase.register";
@@ -10,7 +10,7 @@ export class UsersController {
   constructor(private readonly usersUsecaseRegister: UsersUsecaseRegister) {}
 
   @Post("/api/register")
-  @UsePipes(ZodValidationPipe)
+  @ZodSerializerDto(CreateUserDto)
   @ApiResponse({ status: 201, description: "The user has been successfully registered." })
   @ApiResponse({ status: 204, description: "The user has been successfully registered." })
   @ApiResponse({ status: 400, description: "Bad Request." })

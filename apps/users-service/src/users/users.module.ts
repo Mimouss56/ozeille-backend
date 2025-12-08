@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { MailerModule } from "src/mailer/mailer.module";
 
 import { PrismaService } from "../prisma/prisma.service";
 import { UsersRepository } from "./repository/users.repository";
@@ -9,7 +10,7 @@ import { UsersController } from "./users.controller";
 
 @Module({
   controllers: [UsersController],
-  imports: [],
+  imports: [MailerModule],
   providers: [UsersUsecaseRegister, UserUsecaseFind, UserUsecaseCreate, UsersRepository, PrismaService],
   exports: [UserUsecaseFind, UsersUsecaseRegister, UsersRepository],
 })

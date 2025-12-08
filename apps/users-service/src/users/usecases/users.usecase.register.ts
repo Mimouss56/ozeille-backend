@@ -1,7 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import * as bcrypt from "bcrypt";
+import { MailerAlreadyExistUsecase } from "src/mailer/usecase/mailer.usecase.already-exist";
+import { MailerUsecaseConfirmEmail } from "src/mailer/usecase/mailer.usecase.confirm-email";
 
 import { CreateUserDto } from "../dto/create-user.dto";
+import { UserPasswordDoesntMatchException } from "../exceptions/user.password-doesnt-match.exception";
 import { UserUsecaseCreate } from "./user.usecase.create";
 import { UserUsecaseFind } from "./user.usecase.find-by";
 
@@ -10,16 +13,19 @@ export class UsersUsecaseRegister {
   constructor(
     private readonly userUsecaseFind: UserUsecaseFind,
     private readonly userUsecaseCreate: UserUsecaseCreate,
+    private readonly mailerAlreadyExistUsecase: MailerAlreadyExistUsecase,
+    private readonly mailerUsecaseConfirmEmail: MailerUsecaseConfirmEmail,
   ) {}
 
   async register(createUserDto: CreateUserDto): Promise<void> {
     if (createUserDto.password !== createUserDto.confirmedPassword) {
-      throw new Error("Passwords do not match");
+      throw new UserPasswordDoesntMatchException();
     }
 
     const user = await this.userUsecaseFind.findByEmail(createUserDto.email);
     if (user) {
-      // service mailer envois email de compte déja existant
+      // TODO: Generation token dans redis
+      await this.mailerAlreadyExistUsecase.sendAlreadyExistsEmail(createUserDto.email);
       return;
     }
 
@@ -38,5 +44,6 @@ export class UsersUsecaseRegister {
     }
 
     // service mailer envois email de confirmation
+    await this.mailerUsecaseConfirmEmail.sendConfirmationEmail(userCreated.email, userCreated.firstName ?? undefined);
   }
 }
