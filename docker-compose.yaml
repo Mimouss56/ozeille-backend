@@ -36,6 +36,8 @@ services:
       - ./apps/transactions-service:/home/node/app
     ports:
       - ${TRANSACTIONS_API_PORT:-3001}:3000
+    environment:
+      "DATABASE_URL": "postgresql://${TRANSACTIONS_DB_USER:-ozeille}:${TRANSACTIONS_DB_PASSWORD:-ozeille}@transactions-db:5432/${TRANSACTIONS_DB_NAME:-ozeille}?schema=public"
     depends_on:
       transactions-db:
         condition: service_healthy
@@ -48,6 +50,8 @@ services:
       POSTGRES_DB: ${TRANSACTIONS_DB_NAME:-ozeille}
     volumes:
       - transaction-db-data:/var/lib/postgresql/data
+    ports:
+      - "7002:5432"
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER}" ]
       interval: 30s

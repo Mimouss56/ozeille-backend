@@ -1,0 +1,14 @@
+model Transaction {
+  id        String    @id @default(uuid())
+  amount    Float
+  label     String    @db.VarChar(30)
+  dueAt     DateTime  @map("due_at")
+  pointedAt DateTime? @map("pointed_at") @db.Timestamptz(0)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(0)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(0)
+  // endDate   DateTime? @map("end_date")
+  //categoryId
+  // frenquencyId
+
+  @@map("transactions")
+}
