@@ -1,0 +1,13 @@
+model User {
+  id                   String    @id @default(uuid())
+  email                String    @unique @db.VarChar(50)
+  password             String    @db.VarChar(255)
+  firstName            String    @db.VarChar(30) @map("first_name")
+  lastName             String    @db.VarChar(30) @map("last_name")
+  is_email_verified    Boolean   @default(false) @map("is_email_verified")
+  confirmation_token   String?   @map("confirmation_token")
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(0)
+  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz(0)
+
+  @@map("users")
+}

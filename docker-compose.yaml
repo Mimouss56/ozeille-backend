@@ -6,6 +6,9 @@ services:
       target: development
     volumes:
       - ./apps/users-service:/home/node/app
+    environment:
+      DATABASE_URL: "postgresql://${USERS_DB_USER:-ozeille_user}:${USERS_DB_PASSWORD:-ozeille_user}@users-db:5432/${USERS_DB_NAME:-user}?schema=public"
+
     ports:
       - ${USERS_API_PORT:-3000}:3000
     depends_on:
@@ -15,9 +18,9 @@ services:
   users-db:
     image: postgres:17
     environment:
-      POSTGRES_PASSWORD: ${USERS_DB_PASSWORD:-ozeille}
-      POSTGRES_USER: ${USERS_DB_USER:-ozeille}
-      POSTGRES_DB: ${USERS_DB_NAME:-ozeille}
+      POSTGRES_PASSWORD: ${USERS_DB_PASSWORD:-ozeille_user}
+      POSTGRES_USER: ${USERS_DB_USER:-ozeille_user}
+      POSTGRES_DB: ${USERS_DB_NAME:-user}
     volumes:
       - user-db-data:/var/lib/postgresql/data
     healthcheck:
