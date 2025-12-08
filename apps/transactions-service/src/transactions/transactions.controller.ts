@@ -76,7 +76,20 @@ export class TransactionsController {
   }
 
   @Delete(":id")
-  remove(@Param("id") id: string): string {
-    return this.transactionsService.remove(+id);
+  @ApiOkResponse({
+    type: TransactionResponse,
+  })
+  @ApiNotFoundResponse({
+    description: "The transaction with the given ID was not found.",
+    type: ErrorResponse,
+  })
+  async remove(@Param("id") id: string): Promise<Transaction> {
+    const transaction = await this.transactionsService.remove(id);
+
+    if (!transaction) {
+      throw new NotFoundException("The transaction with the given ID was not found.");
+    }
+
+    return transaction;
   }
 }

@@ -31,7 +31,13 @@ export class TransactionsService {
     return this.repository.updateOne(id, updateTransactionRequest);
   }
 
-  remove(id: number): string {
-    return `This action removes a #${id} transaction`;
+  async remove(id: string): Promise<Transaction | null> {
+    const transaction = await this.repository.getById(id);
+
+    if (!transaction) {
+      return null;
+    }
+
+    return this.repository.remove(id);
   }
 }

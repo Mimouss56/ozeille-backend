@@ -24,4 +24,8 @@ export class TransactionsRepository {
   updateOne(id: string, transaction: UpdateTransactionRequest): Promise<Transaction | null> {
     return this.prisma.transaction.update({ where: { id }, data: transaction });
   }
+
+  remove(id: string): Promise<Transaction | null> {
+    return this.prisma.transaction.delete({ where: { id } });
+  }
 }
