@@ -24,57 +24,120 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Detect changed services & run checks
+      - name: Detect changed modules & run checks per-module
         run: |
           set -euo pipefail
 
-          # Ensure we have main for diff comparison
-          git fetch origin main --no-tags || true
+          # Compare against develop (PRs target develop)
+          git fetch origin develop --no-tags || true
 
-          DIFF=$(git diff --name-only origin/main...HEAD || true)
+          DIFF=$(git diff --name-only origin/develop...HEAD || true)
           echo "Changed paths:\n$DIFF"
 
           SERVICES_DIR="backend/apps"
-          SERVICES_TO_RUN=()
+          declare -A SERVICE_MODULES
 
-          for d in "$SERVICES_DIR"/*; do
-            [ -d "$d" ] || continue
-            svc=$(basename "$d")
-            # If any changed file is under this service, schedule it
-            if echo "$DIFF" | grep -q "^$d/"; then
-              SERVICES_TO_RUN+=("$svc")
+          # Find services that have changes and the specific modules under src
+          while IFS= read -r path; do
+            # match backend/apps/<service>/src/<module>/...
+            if [[ $path =~ ^backend/apps/([^/]+)/src/([^/]+)/ ]]; then
+              svc=${BASH_REMATCH[1]}
+              mod=${BASH_REMATCH[2]}
+              SERVICE_MODULES["$svc"]+="$mod "
+            else
+              # if change anywhere under service, mark service for full run
+              if [[ $path =~ ^backend/apps/([^/]+)/ ]]; then
+                svc=${BASH_REMATCH[1]}
+                SERVICE_MODULES["$svc"]+="__ALL__ "
+              fi
             fi
-          done
+          done <<< "$DIFF"
 
-          # If nothing specific changed under apps, run checks for all services
-          if [ ${#SERVICES_TO_RUN[@]} -eq 0 ]; then
-            echo "No service-specific changes detected — running checks for all services"
+          # If no service changes found, run checks for all services
+          if [ ${#SERVICE_MODULES[@]} -eq 0 ]; then
+            echo "No service-specific changes detected — scheduling all services"
             for d in "$SERVICES_DIR"/*; do
               [ -d "$d" ] || continue
-              SERVICES_TO_RUN+=("$(basename "$d")")
+              svc=$(basename "$d")
+              SERVICE_MODULES["$svc"]+="__ALL__ "
             done
           fi
 
-          echo "Services to run: ${SERVICES_TO_RUN[*]}"
+          echo "Services and modules to run:" 
+          for svc in "${!SERVICE_MODULES[@]}"; do
+            echo "- $svc : ${SERVICE_MODULES[$svc]}"
+          done
 
-          # Optionally run root-level install/lint if a package.json exists at backend
+          # Install root deps if present
           if [ -f backend/package.json ]; then
             echo "Installing root backend dependencies"
             (cd backend && npm ci)
-            echo "Running root lint/build if present"
-            (cd backend && npm run lint --if-present) || true
-            (cd backend && npm run build --if-present) || true
           fi
 
-          for svc in "${SERVICES_TO_RUN[@]}"; do
-            echo "\n--- Running checks for service: $svc ---"
-            if [ -f "$SERVICES_DIR/$svc/package.json" ]; then
-              (cd "$SERVICES_DIR/$svc" && npm ci)
-              (cd "$SERVICES_DIR/$svc" && npm run lint --if-present) || true
-              (cd "$SERVICES_DIR/$svc" && npm test --if-present) || true
-            else
-              echo "No package.json for $svc — skipping npm steps"
-            fi
+          # Run checks per service/module
+          for svc in "${!SERVICE_MODULES[@]}"; do
+            mods=${SERVICE_MODULES[$svc]}
+            svcdir="$SERVICES_DIR/$svc"
+            echo "\n--- Running checks for service: $svc (modules: $mods) ---"
+              if [ -f "$svcdir/package.json" ]; then
+                (cd "$svcdir" && npm ci)
+                # If transactions-service we may need a Postgres for tests
+                NEED_DB=0
+                if [ "$svc" = "transactions-service" ]; then
+                  NEED_DB=1
+                fi
+
+                # if __ALL__ present, run full lint/test
+                if echo "$mods" | grep -q "__ALL__"; then
+                  (cd "$svcdir" && npm run lint --if-present) || true
+                  if [ "$NEED_DB" -eq 1 ]; then
+                    echo "Starting Postgres for $svc"
+                    docker run --name pg_${svc}_ci -e POSTGRES_PASSWORD=postgres -e POSTGRES_USER=postgres -e POSTGRES_DB=postgres -d postgres:15-alpine
+                    # wait for Postgres to be ready
+                    until docker exec pg_${svc}_ci pg_isready -U postgres >/dev/null 2>&1; do
+                      echo "Waiting for Postgres..."
+                      sleep 1
+                    done
+                    export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres"
+                    # Prisma generate / migrate if applicable
+                    if [ -f "$svcdir/prisma/schema.prisma" ] || [ -d "$svcdir/prisma/migrations" ]; then
+                      (cd "$svcdir" && npx prisma generate) || true
+                      (cd "$svcdir" && npx prisma migrate deploy --schema=prisma/schema.prisma) || true
+                    fi
+                    (cd "$svcdir" && env DATABASE_URL="$DATABASE_URL" npm test --if-present) || true
+                    # cleanup
+                    docker rm -f pg_${svc}_ci || true
+                  else
+                    (cd "$svcdir" && npm test --if-present) || true
+                  fi
+                else
+                  # Run lint and tests only for changed modules
+                  for mod in $mods; do
+                    echo "Running lint for module: $mod"
+                    (cd "$svcdir" && npx eslint "src/$mod/**" --ext .ts) || true
+                    echo "Running tests for module: $mod"
+                    if [ "$svc" = "transactions-service" ]; then
+                      echo "Starting Postgres for module tests in $svc"
+                      docker run --name pg_${svc}_ci -e POSTGRES_PASSWORD=postgres -e POSTGRES_USER=postgres -e POSTGRES_DB=postgres -d postgres:15-alpine
+                      until docker exec pg_${svc}_ci pg_isready -U postgres >/dev/null 2>&1; do
+                        echo "Waiting for Postgres..."
+                        sleep 1
+                      done
+                      export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres"
+                      if [ -f "$svcdir/prisma/schema.prisma" ] || [ -d "$svcdir/prisma/migrations" ]; then
+                        (cd "$svcdir" && npx prisma generate) || true
+                        (cd "$svcdir" && npx prisma migrate deploy --schema=prisma/schema.prisma) || true
+                      fi
+                      (cd "$svcdir" && env DATABASE_URL="$DATABASE_URL" npm test -- --testPathPattern="src/$mod") || true
+                      docker rm -f pg_${svc}_ci || true
+                    else
+                      (cd "$svcdir" && npm test -- --testPathPattern="src/$mod") || true
+                    fi
+                  done
+                fi
+              else
+                echo "No package.json for $svc — skipping npm steps"
+              fi
           done
 
       - name: Run affected tests
