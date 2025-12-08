@@ -6,14 +6,12 @@ import { type Transaction } from "src/generated/prisma/client";
 import { CreateTransactionRequest } from "./dto/create-transaction.dto";
 import { TransactionResponse } from "./dto/transaction.dto";
 import { UpdateTransactionDto } from "./dto/update-transaction.dto";
-import { TransactionsRepository } from "./repository/transactions.repository";
 import { TransactionsService } from "./transactions.service";
 
 @Controller("transactions")
 export class TransactionsController {
   constructor(
     private readonly transactionsService: TransactionsService,
-    private readonly transactionsRepository: TransactionsRepository,
   ) {
     // Constructor body can be empty or used for additional setup
   }
