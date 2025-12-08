@@ -1,7 +1,7 @@
 model Frequency {
   id           String  @id @default(uuid())
   label        String  @db.VarChar()
-  monthlyValue Decimal @unique @map("monthly_value")
+  monthlyValue Decimal @db.Decimal(5,2) @unique
   transactions  Transaction[]
 
   @@map("frequencies")

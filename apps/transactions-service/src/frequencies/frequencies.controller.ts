@@ -1,14 +1,17 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UsePipes } from '@nestjs/common';
 import { FrequenciesService } from './frequencies.service';
-import { CreateFrequencyDto } from './dto/create-frequency.dto';
+import { CreateFrequencyDto, createFrequencySchema } from './dto/create-frequency.dto';
 import { UpdateFrequencyDto } from './dto/update-frequency.dto';
+import { ZodValidationPipe } from 'src/pipe/ZodValidationPipe';
+import { Frequency } from 'src/generated/prisma/client';
 
 @Controller('frequencies')
 export class FrequenciesController {
   constructor(private readonly frequenciesService: FrequenciesService) {}
 
   @Post()
-  create(@Body() createFrequencyDto: CreateFrequencyDto) {
+  @UsePipes(new ZodValidationPipe(createFrequencySchema))
+  create(@Body() createFrequencyDto: CreateFrequencyDto): Promise<Frequency> {
     return this.frequenciesService.create(createFrequencyDto);
   }
 
@@ -19,16 +22,16 @@ export class FrequenciesController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.frequenciesService.findOne(+id);
+    return this.frequenciesService.findOne(id);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateFrequencyDto: UpdateFrequencyDto) {
-    return this.frequenciesService.update(+id, updateFrequencyDto);
+    return this.frequenciesService.update(id, updateFrequencyDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.frequenciesService.remove(+id);
+    return this.frequenciesService.remove(id);
   }
 }

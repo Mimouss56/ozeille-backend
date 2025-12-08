@@ -3,6 +3,7 @@ import { Injectable } from "@nestjs/common";
 import { Frequency } from "../../generated/prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CreateFrequencyDto } from "../dto/create-frequency.dto";
+import { UpdateFrequencyDto } from "../dto/update-frequency.dto";
 
 @Injectable()
 export class FrequenciesRepository {
@@ -14,5 +15,26 @@ export class FrequenciesRepository {
 
   async create(frequency: CreateFrequencyDto): Promise<Frequency> {
     return this.prisma.frequency.create({ data: frequency });
+  }
+
+  async findOne(id: string): Promise<Frequency | null>  {
+    return this.prisma.frequency.findUnique({
+      where: {
+      id
+    }})
+  }
+
+  async update(id: string, frequency: UpdateFrequencyDto) {
+    return this.prisma.frequency.update({
+      where: { id },
+      data: frequency
+    })
+  }
+
+  async remove(id: string) {
+    return this.prisma.frequency.delete({
+      where: {
+      id
+    }})
   }
 }

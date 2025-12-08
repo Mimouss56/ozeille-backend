@@ -15,15 +15,15 @@ export class FrequenciesService {
     return this.repository.getAll();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} frequency`;
+  findOne(id: string) {
+    return this.repository.findOne(id);
   }
 
-  update(id: number, updateFrequencyDto: UpdateFrequencyDto) {
-    return `This action updates a #${id} frequency`;
+  update(id: string, updateFrequencyDto: UpdateFrequencyDto) {
+    return this.repository.update(id, updateFrequencyDto);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} frequency`;
+  remove(id: string) {
+    return this.repository.remove(id);
   }
 }
