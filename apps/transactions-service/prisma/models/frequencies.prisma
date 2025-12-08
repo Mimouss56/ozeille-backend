@@ -1,0 +1,8 @@
+model Frequency {
+  id           String  @id @default(uuid())
+  label        String  @db.VarChar()
+  monthlyValue Decimal @unique @map("monthly_value")
+  transactions  Transaction[]
+
+  @@map("frequencies")
+}
