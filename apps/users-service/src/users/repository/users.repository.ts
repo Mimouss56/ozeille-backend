@@ -15,10 +15,6 @@ export class UsersRepository {
     return this.prisma.user.findMany();
   }
 
-  async findByConfirmationToken(token: string): Promise<User | null> {
-    return this.prisma.user.findFirst({ where: { confirmation_token: token } });
-  }
-
   async update(id: string, data: Prisma.UserUpdateInput): Promise<User> {
     return this.prisma.user.update({ where: { id }, data });
   }
