@@ -1,0 +1,40 @@
+name: Release Backend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+  workflow_run:
+    workflows: ["Auto Merge to Develop"]
+    types: [completed]
+
+jobs:
+  lint-and-build:
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
+    uses: ./.github/workflows/ci-common.yml
+    with:
+      path: ./backend
+      node-version: "24"
+    secrets: inherit
+
+  release:
+    needs: lint-and-build
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - run: npm ci
+      - run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

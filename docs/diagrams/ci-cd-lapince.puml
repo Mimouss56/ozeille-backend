@@ -1,0 +1,83 @@
+@startuml
+title Flux CI/CD LaPince: Feature -> PR -> Develop (Update & Release) -> Main (Prod)
+
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor Developer
+actor Reviewer
+participant "GitHub Repo" as Repo
+participant "CI: PR Checks\n(pr-checks.yml)" as CI_PR
+participant "CI: Develop Pipeline\n(develop-pipeline.yml)" as CI_Dev
+participant "Registry NPM\n(GitHub Packages)" as NPM
+participant "Portainer\n(Production)" as Portainer
+
+== 1. Phase Développement & Validation (Feature Branch) ==
+Developer -> Repo: Push code & Open PR (target: develop)
+activate CI_PR
+
+parallel
+    group Quality Gates (Automatisé)
+        Repo -> CI_PR: Detect changes (Paths Filter)
+        CI_PR -> CI_PR: Lint & Build (Check compilation)
+        CI_PR -> CI_PR: Tests (Unit/Int) sur modules modifiés uniquement
+        CI_PR -> CI_PR: SonarQube Scan
+    end
+
+    group Human Review
+        Reviewer -> Repo: Review Code
+        opt if Reviewer approves
+             Reviewer -> Repo: Add label "auto-merge"
+        end
+    end
+end
+
+CI_PR --> Repo: Status Checks (Pass/Fail)
+
+alt Checks OK + Review OK
+    Repo -> Repo: Merge PR into `develop`
+    deactivate CI_PR
+else Checks Failed / Request Changes
+    Repo -> Developer: Notification (Fix required)
+end
+
+== 2. Phase Intégration & Propagation (Branch Develop) ==
+Repo -> CI_Dev: Trigger on push `develop`
+activate CI_Dev
+
+CI_Dev -> CI_Dev: Full Audit (Lint, Test All, Sonar Full)
+
+group DTO Strategy: Propagation de la source de vérité
+    note right of CI_Dev
+        Si les DTOs ont changé, 
+        on doit mettre à jour tout le monde.
+    end note
+    
+    CI_Dev -> CI_Dev: Build Shared DTO Library
+    CI_Dev -> NPM: Publish new version (@org/shared-dtos)
+    
+    CI_Dev -> CI_Dev: Update dependent package.json \n(npm install @org/shared-dtos@latest)
+    CI_Dev -> Repo: Commit & Push updates (package.json + lockfiles) \n**[skip ci]**
+end
+
+group Artifacts & Release
+    CI_Dev -> CI_Dev: Docker Build & Push (Services + Front)
+    note right: Le build Docker utilise maintenant\nles versions DTO mises à jour juste avant.
+    
+    CI_Dev -> CI_Dev: Semantic Release (Calcul version, Changelog)
+end
+
+alt Pipeline Success
+    CI_Dev -> Repo: Push Git Tag & Changelog
+    CI_Dev -> Repo: Fast-forward Merge `develop` -> `main`
+    deactivate CI_Dev
+    
+    == 3. Phase Déploiement (Production) ==
+    Repo -> Portainer: Webhook Trigger (Update Services)
+    Portainer -> NPM: Pull Docker Images (:latest)
+    Portainer -> Portainer: Restart Containers
+else Failure
+    CI_Dev -> Developer: Alert (Broken Pipe)
+end
+
+@enduml
