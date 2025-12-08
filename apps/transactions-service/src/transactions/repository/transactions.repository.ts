@@ -12,6 +12,10 @@ export class TransactionsRepository {
     return this.prisma.transaction.findMany();
   }
 
+  getById(id: string): Promise<Transaction | null> {
+    return this.prisma.transaction.findUnique({ where: { id } });
+  }
+
   async create(transaction: CreateTransactionRequest): Promise<Transaction> {
     return this.prisma.transaction.create({ data: transaction });
   }

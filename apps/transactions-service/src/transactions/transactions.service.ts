@@ -17,8 +17,8 @@ export class TransactionsService {
     return this.repository.getAll();
   }
 
-  findOne(id: number): string {
-    return `This action returns a #${id} transaction`;
+  findOne(id: string): Promise<Transaction | null> {
+    return this.repository.getById(id);
   }
 
   update(id: number, _updateTransactionDto: UpdateTransactionDto): string {

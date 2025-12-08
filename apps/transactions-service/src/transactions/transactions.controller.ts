@@ -1,8 +1,9 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from "@nestjs/common";
-import { ApiBadRequestResponse, ApiCreatedResponse, ApiOkResponse } from "@nestjs/swagger";
+import { Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post } from "@nestjs/common";
+import { ApiBadRequestResponse, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse } from "@nestjs/swagger";
 import { BadRequestDto } from "src/common/dto/error.dto";
 import { type Transaction } from "src/generated/prisma/client";
 
+import { ErrorResponse } from "../common/dto/base-error.dto";
 import { CreateTransactionRequest } from "./dto/create-transaction.dto";
 import { TransactionResponse } from "./dto/transaction.dto";
 import { UpdateTransactionDto } from "./dto/update-transaction.dto";
@@ -10,9 +11,7 @@ import { TransactionsService } from "./transactions.service";
 
 @Controller("transactions")
 export class TransactionsController {
-  constructor(
-    private readonly transactionsService: TransactionsService,
-  ) {
+  constructor(private readonly transactionsService: TransactionsService) {
     // Constructor body can be empty or used for additional setup
   }
 
@@ -38,8 +37,21 @@ export class TransactionsController {
   }
 
   @Get(":id")
-  findOne(@Param("id") id: string): string {
-    return this.transactionsService.findOne(+id);
+  @ApiOkResponse({
+    type: TransactionResponse,
+  })
+  @ApiNotFoundResponse({
+    description: "The transaction with the given ID was not found.",
+    type: ErrorResponse,
+  })
+  async findOne(@Param("id") id: string): Promise<Transaction> {
+    const transaction = await this.transactionsService.findOne(id);
+
+    if (transaction === null) {
+      throw new NotFoundException("The transaction with the given ID was not found.");
+    }
+
+    return transaction;
   }
 
   @Patch(":id")
