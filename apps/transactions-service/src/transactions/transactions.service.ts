@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { Transaction } from "src/generated/prisma/client";
 
 import { CreateTransactionRequest } from "./dto/create-transaction.dto";
-import { UpdateTransactionDto } from "./dto/update-transaction.dto";
+import { UpdateTransactionRequest } from "./dto/update-transaction.dto";
 import { TransactionsRepository } from "./repository/transactions.repository";
 
 @Injectable()
@@ -21,8 +21,14 @@ export class TransactionsService {
     return this.repository.getById(id);
   }
 
-  update(id: number, _updateTransactionDto: UpdateTransactionDto): string {
-    return `This action updates a #${id} transaction`;
+  async update(id: string, updateTransactionRequest: UpdateTransactionRequest): Promise<Transaction | null> {
+    const transaction = await this.repository.getById(id);
+
+    if (!transaction) {
+      return null;
+    }
+
+    return this.repository.updateOne(id, updateTransactionRequest);
   }
 
   remove(id: number): string {

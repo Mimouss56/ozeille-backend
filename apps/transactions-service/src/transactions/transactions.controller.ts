@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post } from "@nestjs/common";
+import { Body, Controller, Delete, Get, NotFoundException, Param, Post, Put } from "@nestjs/common";
 import { ApiBadRequestResponse, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse } from "@nestjs/swagger";
 import { BadRequestDto } from "src/common/dto/error.dto";
 import { type Transaction } from "src/generated/prisma/client";
@@ -6,7 +6,7 @@ import { type Transaction } from "src/generated/prisma/client";
 import { ErrorResponse } from "../common/dto/base-error.dto";
 import { CreateTransactionRequest } from "./dto/create-transaction.dto";
 import { TransactionResponse } from "./dto/transaction.dto";
-import { UpdateTransactionDto } from "./dto/update-transaction.dto";
+import { UpdateTransactionRequest } from "./dto/update-transaction.dto";
 import { TransactionsService } from "./transactions.service";
 
 @Controller("transactions")
@@ -47,16 +47,32 @@ export class TransactionsController {
   async findOne(@Param("id") id: string): Promise<Transaction> {
     const transaction = await this.transactionsService.findOne(id);
 
-    if (transaction === null) {
+    if (!transaction) {
       throw new NotFoundException("The transaction with the given ID was not found.");
     }
 
     return transaction;
   }
 
-  @Patch(":id")
-  update(@Param("id") id: string, @Body() updateTransactionDto: UpdateTransactionDto): string {
-    return this.transactionsService.update(+id, updateTransactionDto);
+  @Put(":id")
+  @ApiOkResponse({
+    type: TransactionResponse,
+  })
+  @ApiNotFoundResponse({
+    description: "The transaction with the given ID was not found.",
+    type: ErrorResponse,
+  })
+  async update(
+    @Param("id") id: string,
+    @Body() updateTransactionRequest: UpdateTransactionRequest,
+  ): Promise<Transaction> {
+    const transaction = await this.transactionsService.update(id, updateTransactionRequest);
+
+    if (!transaction) {
+      throw new NotFoundException("The transaction with the given ID was not found.");
+    }
+
+    return transaction;
   }
 
   @Delete(":id")

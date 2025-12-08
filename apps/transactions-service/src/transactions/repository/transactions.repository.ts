@@ -3,6 +3,7 @@ import { Injectable } from "@nestjs/common";
 import { Transaction } from "../../generated/prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CreateTransactionRequest } from "../dto/create-transaction.dto";
+import { UpdateTransactionRequest } from "../dto/update-transaction.dto";
 
 @Injectable()
 export class TransactionsRepository {
@@ -18,5 +19,9 @@ export class TransactionsRepository {
 
   async create(transaction: CreateTransactionRequest): Promise<Transaction> {
     return this.prisma.transaction.create({ data: transaction });
+  }
+
+  updateOne(id: string, transaction: UpdateTransactionRequest): Promise<Transaction | null> {
+    return this.prisma.transaction.update({ where: { id }, data: transaction });
   }
 }
