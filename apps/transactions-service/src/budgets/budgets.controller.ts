@@ -1,8 +1,8 @@
 import { Body, Controller, Get, Post, UsePipes } from "@nestjs/common";
 import { BudgetsService } from "./budgets.service";
 import { Budget } from "./entities/budget.entity";
-import { ZodValidationPipe } from "src/pipe/ZodValidationPipe";
 import { CreateBudgetDto, createBudgetSchema } from "./dto/create-budget.dto";
+import { ZodValidationPipe } from "nestjs-zod";
 
 @Controller("budgets")
 export class BudgetsController {
