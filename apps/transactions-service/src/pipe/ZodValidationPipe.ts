@@ -4,8 +4,7 @@ import { ZodType } from "zod";
 export class ZodValidationPipe implements PipeTransform {
   constructor(private schema: ZodType) {}
 
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  transform(value: unknown, _: ArgumentMetadata) {
+  transform(value: unknown, _: ArgumentMetadata): unknown {
     try {
       const parsedValue = this.schema.parse(value);
       return parsedValue;
