@@ -1,10 +1,12 @@
 import { createZodDto } from "nestjs-zod";
 import { z } from "zod";
 
-// Définition du schéma de l'erreur
-const errorSchema = z.object({
-  statusCode: z.number().describe("The HTTP status code"),
-  message: z.string().describe("Error message explaining what went wrong"),
+export const baseErrorSchema = z.object({
+  statusCode: z.number(),
+  message: z.string(),
+});
+
+const errorSchema = baseErrorSchema.extend({
   error: z.string("The type of error").optional(),
 });
 

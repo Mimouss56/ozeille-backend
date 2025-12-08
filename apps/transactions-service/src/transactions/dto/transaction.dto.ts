@@ -1,7 +1,7 @@
 import { createZodDto } from "nestjs-zod";
 import { z } from "zod";
 
-export const TransactionSchema = z.object({
+export const transactionSchema = z.object({
   id: z.uuid(),
   amount: z.float32().refine((val) => val !== 0, {
     error: "Amount must not be equal to 0",
@@ -13,5 +13,5 @@ export const TransactionSchema = z.object({
   updatedAt: z.iso.datetime(),
 });
 
-export type TransactionDto = z.infer<typeof TransactionSchema>;
-export class TransactionResponse extends createZodDto(TransactionSchema) {}
+export type TransactionDto = z.infer<typeof transactionSchema>;
+export class TransactionResponse extends createZodDto(transactionSchema) {}

@@ -2,10 +2,10 @@
 import { createZodDto } from "nestjs-zod";
 import { z } from "zod";
 
+import { baseErrorSchema } from "./base-error.dto";
+
 // Définition du schéma de l'erreur
-const BadRequestSchema = z.object({
-  statusCode: z.number().describe("The HTTP status code"),
-  message: z.string().describe("Error message explaining what went wrong"),
+const validationErrorSchema = baseErrorSchema.extend({
   error: z
     .array(
       z.object({
@@ -16,5 +16,5 @@ const BadRequestSchema = z.object({
     .describe("A list of property"),
 });
 
-// Création de la classe DTO compatible Swagger
-export class BadRequestDto extends createZodDto(BadRequestSchema) {}
+export type ValidationErrorDto = z.infer<typeof validationErrorSchema>;
+export class ValidationErrorResponse extends createZodDto(validationErrorSchema) {}

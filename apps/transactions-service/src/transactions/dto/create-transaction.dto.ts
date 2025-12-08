@@ -1,9 +1,9 @@
 import { createZodDto } from "nestjs-zod";
 import { z } from "zod";
 
-import { TransactionSchema } from "./transaction.dto";
+import { transactionSchema } from "./transaction.dto";
 
-export const createTransactionSchema = TransactionSchema.pick({
+export const createTransactionSchema = transactionSchema.pick({
   amount: true,
   label: true,
   dueAt: true,

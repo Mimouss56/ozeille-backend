@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, NotFoundException, Param, Post, Put } from "@nestjs/common";
 import { ApiBadRequestResponse, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse } from "@nestjs/swagger";
-import { BadRequestDto } from "src/common/dto/error.dto";
+import { ValidationErrorResponse } from "src/common/dto/validation-error.dto";
 import { type Transaction } from "src/generated/prisma/client";
 
 import { ErrorResponse } from "../common/dto/base-error.dto";
@@ -22,7 +22,7 @@ export class TransactionsController {
   })
   @ApiBadRequestResponse({
     description: "Validation failed",
-    type: BadRequestDto,
+    type: ValidationErrorResponse,
   })
   create(@Body() createTransactionDto: CreateTransactionRequest): Promise<Transaction> {
     return this.transactionsService.create(createTransactionDto);
