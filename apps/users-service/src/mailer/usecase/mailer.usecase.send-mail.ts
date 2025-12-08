@@ -3,8 +3,8 @@ import { ConfigService } from "@nestjs/config";
 import * as nodemailer from "nodemailer";
 
 export class MailerUsecaseSendMail {
+  private readonly logger = new Logger(MailerUsecaseSendMail.name);
   constructor(
-    private readonly logger: Logger,
     private readonly configService: ConfigService,
     private readonly transporter: nodemailer.Transporter,
   ) {}
@@ -12,7 +12,7 @@ export class MailerUsecaseSendMail {
   async sendMail(to: string, _subject: string, _html: string): Promise<void> {
     // TODO: implémenter l'envoi d'email
     this.logger.warn(`MailerUsecaseSendMail.sendMail not implemented - attempted to send to ${to}`);
-    throw new NotImplementedException("MailerUsecaseSendMail.sendMail");
+    throw new NotImplementedException(`MailerUsecaseSendMail.sendMailattempted to send to ${to}`);
     /*
     try {
       const from = this.configService.get<string>("MAIL_FROM") || "no-reply@example.com";

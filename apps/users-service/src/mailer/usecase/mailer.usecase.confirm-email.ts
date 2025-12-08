@@ -3,10 +3,9 @@ import { Logger } from "@nestjs/common";
 import { MailerUsecaseSendMail } from "./mailer.usecase.send-mail";
 
 export class MailerUsecaseConfirmEmail {
-  constructor(
-    private readonly logger: Logger,
-    private readonly mailerUsecaseSendMail: MailerUsecaseSendMail,
-  ) {}
+  private readonly logger = new Logger(MailerUsecaseConfirmEmail.name);
+
+  constructor(private readonly mailerUsecaseSendMail: MailerUsecaseSendMail) {}
   async sendConfirmationEmail(email: string, _firstName?: string): Promise<void> {
     /*
     const subject = "Confirmez votre compte";
