@@ -4,6 +4,8 @@ import { ZodSerializerInterceptor, ZodValidationPipe } from "nestjs-zod";
 
 import { TransactionsModule } from "./transactions/transactions.module";
 import { BudgetsModule } from "./budgets/budgets.module";
+import { ZodValidationPipe } from "nestjs-zod";
+import { APP_PIPE } from "@nestjs/core";
 
 @Module({
   imports: [TransactionsModule, BudgetsModule],
