@@ -9,8 +9,8 @@ import { TransactionsRepository } from "./repository/transactions.repository";
 export class TransactionsService {
   constructor(private readonly repository: TransactionsRepository) {}
 
-  create(_createTransactionDto: CreateTransactionDto): string {
-    return "This action adds a new transaction";
+  create(createTransactionDto: CreateTransactionDto): Promise<Transaction> {
+    return this.repository.create(createTransactionDto);
   }
 
   findAll(): Promise<Transaction[]> {
