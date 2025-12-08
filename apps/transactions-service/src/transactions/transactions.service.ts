@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { Transaction } from "src/generated/prisma/client";
 
-import { CreateTransactionDto } from "./dto/create-transaction.dto";
+import { CreateTransactionRequest } from "./dto/create-transaction.dto";
 import { UpdateTransactionDto } from "./dto/update-transaction.dto";
 import { TransactionsRepository } from "./repository/transactions.repository";
 
@@ -9,8 +9,8 @@ import { TransactionsRepository } from "./repository/transactions.repository";
 export class TransactionsService {
   constructor(private readonly repository: TransactionsRepository) {}
 
-  create(createTransactionDto: CreateTransactionDto): Promise<Transaction> {
-    return this.repository.create(createTransactionDto);
+  create(createTransactionRequest: CreateTransactionRequest): Promise<Transaction> {
+    return this.repository.create(createTransactionRequest);
   }
 
   findAll(): Promise<Transaction[]> {

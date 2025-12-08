@@ -1,8 +1,10 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UsePipes } from "@nestjs/common";
-import { ZodValidationPipe } from "src/pipe/ZodValidationPipe";
+import { Body, Controller, Delete, Get, Param, Patch, Post } from "@nestjs/common";
+import { ApiBadRequestResponse, ApiCreatedResponse, ApiOkResponse } from "@nestjs/swagger";
+import { BadRequestDto } from "src/common/dto/error.dto";
+import { type Transaction } from "src/generated/prisma/client";
 
-import { Transaction } from "../generated/prisma/client";
-import { CreateTransactionDto, createTransactionSchema } from "./dto/create-transaction.dto";
+import { CreateTransactionRequest } from "./dto/create-transaction.dto";
+import { TransactionResponse } from "./dto/transaction.dto";
 import { UpdateTransactionDto } from "./dto/update-transaction.dto";
 import { TransactionsRepository } from "./repository/transactions.repository";
 import { TransactionsService } from "./transactions.service";
@@ -17,12 +19,22 @@ export class TransactionsController {
   }
 
   @Post()
-  @UsePipes(new ZodValidationPipe(createTransactionSchema))
-  create(@Body() createTransactionDto: CreateTransactionDto): Promise<Transaction> {
+  @ApiCreatedResponse({
+    description: "The transaction has been successfully created",
+    type: TransactionResponse,
+  })
+  @ApiBadRequestResponse({
+    description: "Validation failed",
+    type: BadRequestDto,
+  })
+  create(@Body() createTransactionDto: CreateTransactionRequest): Promise<Transaction> {
     return this.transactionsService.create(createTransactionDto);
   }
 
   @Get()
+  @ApiOkResponse({
+    type: [TransactionResponse],
+  })
   async findAll(): Promise<Transaction[]> {
     return this.transactionsService.findAll();
   }
