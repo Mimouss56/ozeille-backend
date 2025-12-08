@@ -9,4 +9,3 @@ export class User {
   createdAt: Date;
   updatedAt: Date;
 }
-

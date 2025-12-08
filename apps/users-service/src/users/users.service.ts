@@ -13,19 +13,19 @@ export class UsersService {
     return this.repository.create(createUserDto);
   }
 
-  findAll() {
+  findAll(): string {
     return `This action returns all users`;
   }
 
-  findOne(id: number) {
+  findOne(id: number): string {
     return `This action returns a #${id} user`;
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
+  update(id: number, _updateUserDto: UpdateUserDto): string {
     return `This action updates a #${id} user`;
   }
 
-  remove(id: number) {
+  remove(id: number): string {
     return `This action removes a #${id} user`;
   }
 }
