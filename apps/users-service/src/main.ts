@@ -1,5 +1,6 @@
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { cleanupOpenApiDoc } from "nestjs-zod";
 
 import { AppModule } from "./app.module";
 
@@ -10,8 +11,8 @@ async function bootstrap() {
     .setDescription("LaPince API User-service description")
     .setVersion("1.0")
     .build();
-  const documentFactory = () => SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup("api-docs", app, documentFactory);
+  const documentFactory = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup("api-docs", app, cleanupOpenApiDoc(documentFactory));
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();

@@ -1,36 +1,16 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from "@nestjs/common";
+import { Body, Controller, Post } from "@nestjs/common";
+import { ZodSerializerDto } from "nestjs-zod";
 
 import { CreateUserDto } from "./dto/create-user.dto";
-import { UpdateUserDto } from "./dto/update-user.dto";
-import { User } from "./entities/user.entity";
-import { UsersService } from "./users.service";
+import { UsersUsecaseRegister } from "./usecases/users.usecase.register";
 
 @Controller("users")
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersUsecaseRegister: UsersUsecaseRegister) {}
 
-  @Post()
-  create(@Body() createUserDto: CreateUserDto): Promise<User> {
-    return this.usersService.create(createUserDto);
-  }
-
-  @Get()
-  findAll(): string {
-    return this.usersService.findAll();
-  }
-
-  @Get(":id")
-  findOne(@Param("id") id: string): string {
-    return this.usersService.findOne(+id);
-  }
-
-  @Patch(":id")
-  update(@Param("id") id: string, @Body() updateUserDto: UpdateUserDto): string {
-    return this.usersService.update(+id, updateUserDto);
-  }
-
-  @Delete(":id")
-  remove(@Param("id") id: string): string {
-    return this.usersService.remove(+id);
+  @Post("/api/register")
+  @ZodSerializerDto(CreateUserDto)
+  register(@Body() createUserDto: CreateUserDto): Promise<void> {
+    return this.usersUsecaseRegister.register(createUserDto);
   }
 }
