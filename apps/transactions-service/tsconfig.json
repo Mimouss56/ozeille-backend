@@ -19,6 +19,7 @@
     "noFallthroughCasesInSwitch": false,
     "moduleResolution": "node",
     "strict": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "strictPropertyInitialization": false
   }
 }

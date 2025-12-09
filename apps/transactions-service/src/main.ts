@@ -7,6 +7,7 @@ import { ZodValidationExceptionFilter } from "./common/filters/validation.filter
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
   app.useGlobalFilters(new ZodValidationExceptionFilter());
 
   const config = new DocumentBuilder()
