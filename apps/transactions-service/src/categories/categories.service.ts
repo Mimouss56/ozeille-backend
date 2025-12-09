@@ -1,5 +1,5 @@
-import { Injectable } from "@nestjs/common";
-import { Category } from "src/generated/prisma/client";
+import { ConflictException, Injectable } from "@nestjs/common";
+import { Category, Prisma } from "src/generated/prisma/client";
 
 import { CreateCategoryRequest } from "./dto/create-category.dto";
 import { UpdateCategoryRequest } from "./dto/update-category.dto";
@@ -14,7 +14,19 @@ export class CategoriesService {
   }
 
   async create(createCategoryRequest: CreateCategoryRequest): Promise<Category> {
-    return this.repository.create(createCategoryRequest);
+    try {
+      return await this.repository.create(createCategoryRequest);
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') { // contrainte unique violée
+          throw new ConflictException(
+            `A category with the label '${createCategoryRequest.label}' already exists in this budget.`
+          );
+        }
+      }
+      
+      throw error; 
+    }
   }
 
   findOne(id: string): Promise<Category | null> {

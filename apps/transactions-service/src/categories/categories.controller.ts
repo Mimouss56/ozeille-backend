@@ -11,6 +11,7 @@ import {
 } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
+  ApiConflictResponse,
   ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -48,6 +49,10 @@ export class CategoriesController {
   @ApiBadRequestResponse({
     description: "Validation failed",
     type: ValidationErrorResponse,
+  })
+  @ApiConflictResponse({ 
+    description: "A category with this label already exists for this budget",
+    type: ErrorResponse 
   })
   async create(@Body() createCategoryRequest: CreateCategoryRequest): Promise<Category> {
     return this.categoriesService.create(createCategoryRequest);
