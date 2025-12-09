@@ -14,19 +14,7 @@ export class CategoriesService {
   }
 
   async create(createCategoryRequest: CreateCategoryRequest): Promise<Category> {
-    try {
-      return await this.repository.create(createCategoryRequest);
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') { // contrainte unique violée
-          throw new ConflictException(
-            `A category with the label '${createCategoryRequest.label}' already exists in this budget.`
-          );
-        }
-      }
-      
-      throw error; 
-    }
+    return await this.repository.create(createCategoryRequest);
   }
 
   findOne(id: string): Promise<Category | null> {
