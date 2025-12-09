@@ -23,11 +23,11 @@ import { ValidationErrorResponse } from "src/common/dto/validation-error.dto";
 import { type Transaction } from "src/generated/prisma/client";
 
 import { ErrorResponse } from "../common/dto/base-error.dto";
-import { PaginationFilters } from "../common/dto/pagination.dto";
 import { PaginatedResponseInterceptor } from "../common/interceptors/paginated-response.interceptor";
 import { PaginatedDatabaseResponse } from "../common/types";
 import { CreateTransactionRequest } from "./dto/create-transaction.dto";
 import { AdvancedPaginatedTransactionResponse, PaginatedTransactionResponse } from "./dto/paginated-transaction.dto";
+import { TransactionFilters } from "./dto/transaction-filter.dto";
 import { TransactionResponse } from "./dto/transaction.dto";
 import { UpdateTransactionRequest } from "./dto/update-transaction.dto";
 import { TransactionsService } from "./transactions.service";
@@ -64,7 +64,7 @@ export class TransactionsController {
       },
     },
   })
-  async findAll(@Query() params: PaginationFilters): Promise<PaginatedDatabaseResponse<Transaction>> {
+  async findAll(@Query() params: TransactionFilters): Promise<PaginatedDatabaseResponse<Transaction>> {
     return this.transactionsService.findAll(params);
   }
 
