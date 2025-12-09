@@ -17,15 +17,27 @@ export class FrequenciesService {
     return this.repository.getAll();
   }
 
-  findOne(id: string): Promise<Frequency | null> {
+  async findOne(id: string): Promise<Frequency | null> {
+    const frequency = await this.repository.getById(id);
+
+    if (!frequency) return null;
+
     return this.repository.getById(id);
   }
 
-  async update(id: string, updateFrequencyRequest: UpdateFrequencyRequest): Promise<Frequency> {
+  async update(id: string, updateFrequencyRequest: UpdateFrequencyRequest): Promise<Frequency | null> {
+    const frequency = await this.repository.getById(id);
+
+    if (!frequency) return null;
+
     return this.repository.updateOne(id, updateFrequencyRequest);
   }
 
   async remove(id: string): Promise<Frequency | null> {
+    const frequency = await this.repository.getById(id);
+
+    if (!frequency) return null;
+
     return this.repository.remove(id);
   }
 }

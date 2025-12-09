@@ -72,7 +72,7 @@ export class FrequenciesController {
   async update(
     @Param("id", ParseUUIDPipe) id: string,
     @Body() updateFrequencyDto: UpdateFrequencyRequest,
-  ): Promise<Frequency> {
+  ): Promise<Frequency | null> {
     const frequency = this.frequenciesService.update(id, updateFrequencyDto);
 
     if (!frequency) throw new NotFoundException("The frequency with the given ID was not found");
