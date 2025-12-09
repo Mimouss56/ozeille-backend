@@ -1,31 +1,45 @@
 import { Injectable } from "@nestjs/common";
 import { Transaction } from "src/generated/prisma/client";
 
-import { CreateTransactionDto } from "./dto/create-transaction.dto";
-import { UpdateTransactionDto } from "./dto/update-transaction.dto";
+import { PaginationFilters } from "../common/dto/pagination.dto";
+import { PaginatedDatabaseResponse } from "../common/types";
+import { CreateTransactionRequest } from "./dto/create-transaction.dto";
+import { UpdateTransactionRequest } from "./dto/update-transaction.dto";
 import { TransactionsRepository } from "./repository/transactions.repository";
 
 @Injectable()
 export class TransactionsService {
   constructor(private readonly repository: TransactionsRepository) {}
 
-  create(createTransactionDto: CreateTransactionDto): Promise<Transaction> {
-    return this.repository.create(createTransactionDto);
+  create(createTransactionRequest: CreateTransactionRequest): Promise<Transaction> {
+    return this.repository.create(createTransactionRequest);
   }
 
-  findAll(): Promise<Transaction[]> {
-    return this.repository.getAll();
+  findAll(params: PaginationFilters): Promise<PaginatedDatabaseResponse<Transaction>> {
+    return this.repository.getAll(params);
   }
 
-  findOne(id: number): string {
-    return `This action returns a #${id} transaction`;
+  findOne(id: string): Promise<Transaction | null> {
+    return this.repository.getById(id);
   }
 
-  update(id: number, _updateTransactionDto: UpdateTransactionDto): string {
-    return `This action updates a #${id} transaction`;
+  async update(id: string, updateTransactionRequest: UpdateTransactionRequest): Promise<Transaction | null> {
+    const transaction = await this.repository.getById(id);
+
+    if (!transaction) {
+      return null;
+    }
+
+    return this.repository.updateOne(id, updateTransactionRequest);
   }
 
-  remove(id: number): string {
-    return `This action removes a #${id} transaction`;
+  async remove(id: string): Promise<Transaction | null> {
+    const transaction = await this.repository.getById(id);
+
+    if (!transaction) {
+      return null;
+    }
+
+    return this.repository.remove(id);
   }
 }
