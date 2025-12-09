@@ -95,7 +95,7 @@ export class TransactionsController {
     type: ErrorResponse,
   })
   async update(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Body() updateTransactionRequest: UpdateTransactionRequest,
   ): Promise<Transaction> {
     const transaction = await this.transactionsService.update(id, updateTransactionRequest);
@@ -115,7 +115,7 @@ export class TransactionsController {
     description: "The transaction with the given ID was not found.",
     type: ErrorResponse,
   })
-  async remove(@Param("id") id: string): Promise<Transaction> {
+  async remove(@Param("id", ParseUUIDPipe) id: string): Promise<Transaction> {
     const transaction = await this.transactionsService.remove(id);
 
     if (!transaction) {
