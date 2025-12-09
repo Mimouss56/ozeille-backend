@@ -3,6 +3,7 @@ import { z } from "zod";
 
 export const frequencySchema = z
   .object({
+    id: z.uuid(),
     label: z.string().max(30),
     monthlyValue: z
       .float32()
