@@ -1,7 +1,8 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, UsePipes } from "@nestjs/common";
+import { ZodValidationPipe } from "src/pipe/ZodValidationPipe";
 
 import { Transaction } from "../generated/prisma/client";
-import { CreateTransactionDto } from "./dto/create-transaction.dto";
+import { CreateTransactionDto, createTransactionSchema } from "./dto/create-transaction.dto";
 import { UpdateTransactionDto } from "./dto/update-transaction.dto";
 import { TransactionsRepository } from "./repository/transactions.repository";
 import { TransactionsService } from "./transactions.service";
@@ -16,7 +17,8 @@ export class TransactionsController {
   }
 
   @Post()
-  create(@Body() createTransactionDto: CreateTransactionDto): string {
+  @UsePipes(new ZodValidationPipe(createTransactionSchema))
+  create(@Body() createTransactionDto: CreateTransactionDto): Promise<Transaction> {
     return this.transactionsService.create(createTransactionDto);
   }
 
