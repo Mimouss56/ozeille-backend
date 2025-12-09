@@ -1,18 +1,12 @@
+import { createZodDto } from "nestjs-zod";
 import z from "zod";
 
-export const updateFrequencySchema = z
-  .object({
-    label: z.string().max(30).optional(),
-    monthlyValue: z
-      .float32()
-      .min(0.01)
-      .max(24.0)
-      .refine((val) => Number(val * 4) % 1 === 0, {
-        message: "must be multiple of 0.25",
-      })
-      .optional(),
-  })
-  .partial()
-  .required();
+import { frequencySchema } from "./frequency.dto";
+
+export const updateFrequencySchema = frequencySchema.pick({
+  label: true,
+  monthlyValue: true,
+});
 
 export type UpdateFrequencyDto = z.infer<typeof updateFrequencySchema>;
+export class UpdateFrequencyRequest extends createZodDto(updateFrequencySchema) {}

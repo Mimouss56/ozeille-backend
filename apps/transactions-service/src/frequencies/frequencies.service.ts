@@ -1,16 +1,16 @@
 import { Injectable } from "@nestjs/common";
 import { Frequency } from "src/generated/prisma/client";
 
-import { CreateFrequencyDto } from "./dto/create-frequency.dto";
-import { UpdateFrequencyDto } from "./dto/update-frequency.dto";
+import { CreateFrequencyRequest } from "./dto/create-frequency.dto";
+import { UpdateFrequencyRequest } from "./dto/update-frequency.dto";
 import { FrequenciesRepository } from "./repository/frequencies.repository";
 
 @Injectable()
 export class FrequenciesService {
   constructor(private readonly repository: FrequenciesRepository) {}
 
-  create(createFrequencyDto: CreateFrequencyDto): Promise<Frequency> {
-    return this.repository.create(createFrequencyDto);
+  create(createFrequencyRequest: CreateFrequencyRequest): Promise<Frequency> {
+    return this.repository.create(createFrequencyRequest);
   }
 
   findAll(): Promise<Frequency[]> {
@@ -21,15 +21,11 @@ export class FrequenciesService {
     return this.repository.getById(id);
   }
 
-  update(id: string, updateFrequencyDto: UpdateFrequencyDto): Promise<Frequency> {
-    return this.repository.updateOne(id, updateFrequencyDto);
+  async update(id: string, updateFrequencyRequest: UpdateFrequencyRequest): Promise<Frequency> {
+    return this.repository.updateOne(id, updateFrequencyRequest);
   }
 
   async remove(id: string): Promise<Frequency | null> {
-    const frequency = await this.repository.getById(id);
-
-    if (!frequency) return null;
-
     return this.repository.remove(id);
   }
 }
