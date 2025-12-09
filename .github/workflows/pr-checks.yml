@@ -22,11 +22,15 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Detect changed modules & run checks per-module
+        shell: bash
         run: |
           set -euo pipefail
+
+          # ensure associative array is defined even if empty
+          declare -A SERVICE_MODULES=()
 
           # Compare against develop (PRs target develop)
           git fetch origin develop --no-tags || true
@@ -35,7 +39,7 @@ jobs:
           echo "Changed paths:\n$DIFF"
 
           SERVICES_DIR="backend/apps"
-          declare -A SERVICE_MODULES
+          # associative array already initialized above
 
           # Find services that have changes and the specific modules under src
           while IFS= read -r path; do
@@ -147,8 +151,8 @@ jobs:
 
       - name: SonarQube Scan
         run: |
-          SONAR_TOKEN=${{ secrets.SONAR_TOKEN || '""' }}
-          if [ -z "$SONAR_TOKEN" ] || [ "$SONAR_TOKEN" = '""' ]; then
+          SONAR_TOKEN="${{ secrets.SONAR_TOKEN }}"
+          if [ -z "$SONAR_TOKEN" ]; then
             echo "SONAR_TOKEN not set - skipping SonarQube scan"
             exit 0
           fi
