@@ -15,4 +15,9 @@ export class BudgetsService {
   async create(createBudgetRequest: CreateBudgetRequest): Promise<Budget> {
     return this.repository.create(createBudgetRequest);
   }
+
+  findOne(id: string): Promise<Budget | null> {
+    return this.repository.getById(id);
+  }
+
 }
