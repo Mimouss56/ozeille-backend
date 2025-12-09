@@ -81,4 +81,22 @@ export class BudgetsController {
     return budget;
   }
 
+  @Delete(":id")
+  @ApiOkResponse({
+    type: BudgetResponse,
+    description: "The budget has been successfully deleted",
+  })
+  @ApiNotFoundResponse({
+    description: "The budget with the given ID was not found.",
+    type: ErrorResponse,
+  })
+  async remove(@Param("id", ParseUUIDPipe) id: string): Promise<Budget> {
+    const budget = await this.budgetsService.remove(id);
+
+    if (!budget) {
+      throw new NotFoundException("The budget with the given ID was not found.");
+    }
+
+    return budget;
+  }
 }

@@ -25,3 +25,7 @@ export class BudgetsRepository {
     return this.prisma.budget.update({ where: { id }, data: budget });
   }
 
+  remove(id: string): Promise<Budget> {
+    return this.prisma.budget.delete({ where: { id } });
+  }
+}

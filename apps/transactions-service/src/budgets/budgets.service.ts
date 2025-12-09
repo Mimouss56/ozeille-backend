@@ -31,4 +31,13 @@ export class BudgetsService {
     return this.repository.updateOne(id, updateBudgetRequest);
   }
 
+  async remove(id: string): Promise<Budget | null> {
+    const budget = await this.repository.getById(id);
+
+    if (!budget) {
+      return null;
+    }
+
+    return this.repository.remove(id);
+  }
 }
