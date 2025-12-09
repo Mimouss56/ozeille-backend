@@ -1,10 +1,33 @@
-import { Body, Controller, Delete, Get, NotFoundException, Param, Post, Put } from "@nestjs/common";
-import { ApiBadRequestResponse, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse } from "@nestjs/swagger";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  NotFoundException,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Put,
+  Query,
+  UseInterceptors,
+} from "@nestjs/common";
+import {
+  ApiBadRequestResponse,
+  ApiCreatedResponse,
+  ApiExtraModels,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  getSchemaPath,
+} from "@nestjs/swagger";
 import { ValidationErrorResponse } from "src/common/dto/validation-error.dto";
 import { type Transaction } from "src/generated/prisma/client";
 
 import { ErrorResponse } from "../common/dto/base-error.dto";
+import { PaginationFilters } from "../common/dto/pagination.dto";
+import { PaginatedResponseInterceptor } from "../common/interceptors/paginated-response.interceptor";
+import { PaginatedDatabaseResponse } from "../common/types";
 import { CreateTransactionRequest } from "./dto/create-transaction.dto";
+import { AdvancedPaginatedTransactionResponse, PaginatedTransactionResponse } from "./dto/paginated-transaction.dto";
 import { TransactionResponse } from "./dto/transaction.dto";
 import { UpdateTransactionRequest } from "./dto/update-transaction.dto";
 import { TransactionsService } from "./transactions.service";
@@ -29,11 +52,20 @@ export class TransactionsController {
   }
 
   @Get()
+  @UseInterceptors(PaginatedResponseInterceptor<Transaction>)
+  @ApiExtraModels(PaginatedTransactionResponse, AdvancedPaginatedTransactionResponse)
   @ApiOkResponse({
-    type: [TransactionResponse],
+    content: {
+      "application/json": {
+        schema: { $ref: getSchemaPath(PaginatedTransactionResponse) },
+      },
+      "application/vnd.api+json": {
+        schema: { $ref: getSchemaPath(AdvancedPaginatedTransactionResponse) },
+      },
+    },
   })
-  async findAll(): Promise<Transaction[]> {
-    return this.transactionsService.findAll();
+  async findAll(@Query() params: PaginationFilters): Promise<PaginatedDatabaseResponse<Transaction>> {
+    return this.transactionsService.findAll(params);
   }
 
   @Get(":id")
@@ -44,7 +76,7 @@ export class TransactionsController {
     description: "The transaction with the given ID was not found.",
     type: ErrorResponse,
   })
-  async findOne(@Param("id") id: string): Promise<Transaction> {
+  async findOne(@Param("id", ParseUUIDPipe) id: string): Promise<Transaction> {
     const transaction = await this.transactionsService.findOne(id);
 
     if (!transaction) {

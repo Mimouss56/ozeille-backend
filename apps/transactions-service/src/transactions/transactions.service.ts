@@ -1,6 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { Transaction } from "src/generated/prisma/client";
 
+import { PaginationFilters } from "../common/dto/pagination.dto";
+import { PaginatedDatabaseResponse } from "../common/types";
 import { CreateTransactionRequest } from "./dto/create-transaction.dto";
 import { UpdateTransactionRequest } from "./dto/update-transaction.dto";
 import { TransactionsRepository } from "./repository/transactions.repository";
@@ -13,8 +15,8 @@ export class TransactionsService {
     return this.repository.create(createTransactionRequest);
   }
 
-  findAll(): Promise<Transaction[]> {
-    return this.repository.getAll();
+  findAll(params: PaginationFilters): Promise<PaginatedDatabaseResponse<Transaction>> {
+    return this.repository.getAll(params);
   }
 
   findOne(id: string): Promise<Transaction | null> {
