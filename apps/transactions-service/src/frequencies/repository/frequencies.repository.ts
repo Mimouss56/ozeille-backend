@@ -17,24 +17,26 @@ export class FrequenciesRepository {
     return this.prisma.frequency.create({ data: frequency });
   }
 
-  async findOne(id: string): Promise<Frequency | null>  {
+  async getById(id: string): Promise<Frequency | null> {
     return this.prisma.frequency.findUnique({
       where: {
-      id
-    }})
+        id,
+      },
+    });
   }
 
-  async update(id: string, frequency: UpdateFrequencyDto) {
+  async updateOne(id: string, frequency: UpdateFrequencyDto): Promise<Frequency> {
     return this.prisma.frequency.update({
       where: { id },
-      data: frequency
-    })
+      data: frequency,
+    });
   }
 
-  async remove(id: string) {
+  async remove(id: string): Promise<Frequency | null> {
     return this.prisma.frequency.delete({
       where: {
-      id
-    }})
+        id,
+      },
+    });
   }
 }
