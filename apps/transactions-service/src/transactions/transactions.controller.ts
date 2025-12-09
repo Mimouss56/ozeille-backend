@@ -1,44 +1,127 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UsePipes } from "@nestjs/common";
-import { ZodValidationPipe } from "src/pipe/ZodValidationPipe";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  NotFoundException,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Put,
+  Query,
+  UseInterceptors,
+} from "@nestjs/common";
+import {
+  ApiBadRequestResponse,
+  ApiCreatedResponse,
+  ApiExtraModels,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  getSchemaPath,
+} from "@nestjs/swagger";
+import { ValidationErrorResponse } from "src/common/dto/validation-error.dto";
+import { type Transaction } from "src/generated/prisma/client";
 
-import { Transaction } from "../generated/prisma/client";
-import { CreateTransactionDto, createTransactionSchema } from "./dto/create-transaction.dto";
-import { UpdateTransactionDto } from "./dto/update-transaction.dto";
-import { TransactionsRepository } from "./repository/transactions.repository";
+import { ErrorResponse } from "../common/dto/base-error.dto";
+import { PaginationFilters } from "../common/dto/pagination.dto";
+import { PaginatedResponseInterceptor } from "../common/interceptors/paginated-response.interceptor";
+import { PaginatedDatabaseResponse } from "../common/types";
+import { CreateTransactionRequest } from "./dto/create-transaction.dto";
+import { AdvancedPaginatedTransactionResponse, PaginatedTransactionResponse } from "./dto/paginated-transaction.dto";
+import { TransactionResponse } from "./dto/transaction.dto";
+import { UpdateTransactionRequest } from "./dto/update-transaction.dto";
 import { TransactionsService } from "./transactions.service";
 
 @Controller("transactions")
 export class TransactionsController {
-  constructor(
-    private readonly transactionsService: TransactionsService,
-    private readonly transactionsRepository: TransactionsRepository,
-  ) {
+  constructor(private readonly transactionsService: TransactionsService) {
     // Constructor body can be empty or used for additional setup
   }
 
   @Post()
-  @UsePipes(new ZodValidationPipe(createTransactionSchema))
-  create(@Body() createTransactionDto: CreateTransactionDto): Promise<Transaction> {
+  @ApiCreatedResponse({
+    description: "The transaction has been successfully created",
+    type: TransactionResponse,
+  })
+  @ApiBadRequestResponse({
+    description: "Validation failed",
+    type: ValidationErrorResponse,
+  })
+  create(@Body() createTransactionDto: CreateTransactionRequest): Promise<Transaction> {
     return this.transactionsService.create(createTransactionDto);
   }
 
   @Get()
-  async findAll(): Promise<Transaction[]> {
-    return this.transactionsService.findAll();
+  @UseInterceptors(PaginatedResponseInterceptor<Transaction>)
+  @ApiExtraModels(PaginatedTransactionResponse, AdvancedPaginatedTransactionResponse)
+  @ApiOkResponse({
+    content: {
+      "application/json": {
+        schema: { $ref: getSchemaPath(PaginatedTransactionResponse) },
+      },
+      "application/vnd.api+json": {
+        schema: { $ref: getSchemaPath(AdvancedPaginatedTransactionResponse) },
+      },
+    },
+  })
+  async findAll(@Query() params: PaginationFilters): Promise<PaginatedDatabaseResponse<Transaction>> {
+    return this.transactionsService.findAll(params);
   }
 
   @Get(":id")
-  findOne(@Param("id") id: string): string {
-    return this.transactionsService.findOne(+id);
+  @ApiOkResponse({
+    type: TransactionResponse,
+  })
+  @ApiNotFoundResponse({
+    description: "The transaction with the given ID was not found.",
+    type: ErrorResponse,
+  })
+  async findOne(@Param("id", ParseUUIDPipe) id: string): Promise<Transaction> {
+    const transaction = await this.transactionsService.findOne(id);
+
+    if (!transaction) {
+      throw new NotFoundException("The transaction with the given ID was not found.");
+    }
+
+    return transaction;
   }
 
-  @Patch(":id")
-  update(@Param("id") id: string, @Body() updateTransactionDto: UpdateTransactionDto): string {
-    return this.transactionsService.update(+id, updateTransactionDto);
+  @Put(":id")
+  @ApiOkResponse({
+    type: TransactionResponse,
+  })
+  @ApiNotFoundResponse({
+    description: "The transaction with the given ID was not found.",
+    type: ErrorResponse,
+  })
+  async update(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() updateTransactionRequest: UpdateTransactionRequest,
+  ): Promise<Transaction> {
+    const transaction = await this.transactionsService.update(id, updateTransactionRequest);
+
+    if (!transaction) {
+      throw new NotFoundException("The transaction with the given ID was not found.");
+    }
+
+    return transaction;
   }
 
   @Delete(":id")
-  remove(@Param("id") id: string): string {
-    return this.transactionsService.remove(+id);
+  @ApiOkResponse({
+    type: TransactionResponse,
+  })
+  @ApiNotFoundResponse({
+    description: "The transaction with the given ID was not found.",
+    type: ErrorResponse,
+  })
+  async remove(@Param("id", ParseUUIDPipe) id: string): Promise<Transaction> {
+    const transaction = await this.transactionsService.remove(id);
+
+    if (!transaction) {
+      throw new NotFoundException("The transaction with the given ID was not found.");
+    }
+
+    return transaction;
   }
 }
