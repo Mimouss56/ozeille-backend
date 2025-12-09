@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
-import { Budget } from "../../generated/prisma/client";
-import { PrismaService } from "../../prisma/prisma.service";
-import { CreateBudgetDto } from "../dto/create-budget.dto";
+import { Budget } from "src/generated/prisma/client";
+import { PrismaService } from "src/prisma/prisma.service";
+import { CreateBudgetRequest } from "../dto/create-budget.dto";
 
 @Injectable()
 export class BudgetsRepository {
@@ -11,7 +11,7 @@ export class BudgetsRepository {
     return this.prisma.budget.findMany();
   }
 
-  async create(budget: CreateBudgetDto): Promise<Budget> {
+  async create(budget: CreateBudgetRequest): Promise<Budget> {
     return this.prisma.budget.create({ data: budget });
   }
 }

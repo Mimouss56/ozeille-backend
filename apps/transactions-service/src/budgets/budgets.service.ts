@@ -1,7 +1,8 @@
 import { Injectable } from "@nestjs/common";
+import { Budget } from "src/generated/prisma/client";
+
 import { BudgetsRepository } from "./repository/budgets.repository";
-import { Budget } from "./entities/budget.entity";
-import { CreateBudgetDto } from "./dto/create-budget.dto";
+import { CreateBudgetRequest } from "./dto/create-budget.dto";
 
 @Injectable()
 export class BudgetsService {
@@ -11,7 +12,7 @@ export class BudgetsService {
     return this.repository.getAll();
   }
 
-  async create(createBudgetDto: CreateBudgetDto): Promise<Budget> {
-    return this.repository.create(createBudgetDto);
+  async create(createBudgetRequest: CreateBudgetRequest): Promise<Budget> {
+    return this.repository.create(createBudgetRequest);
   }
 }
