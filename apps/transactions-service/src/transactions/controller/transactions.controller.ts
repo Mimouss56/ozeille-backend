@@ -19,18 +19,18 @@ import {
   ApiOkResponse,
   getSchemaPath,
 } from "@nestjs/swagger";
+import { ErrorResponse } from "src/common/dto/base-error.dto";
 import { ValidationErrorResponse } from "src/common/dto/validation-error.dto";
+import { PaginatedResponseInterceptor } from "src/common/interceptors/paginated-response.interceptor";
+import { PaginatedDatabaseResponse } from "src/common/types";
 import { type Transaction } from "src/generated/prisma/client";
 
-import { ErrorResponse } from "../common/dto/base-error.dto";
-import { PaginatedResponseInterceptor } from "../common/interceptors/paginated-response.interceptor";
-import { PaginatedDatabaseResponse } from "../common/types";
-import { CreateTransactionRequest } from "./dto/create-transaction.dto";
-import { AdvancedPaginatedTransactionResponse, PaginatedTransactionResponse } from "./dto/paginated-transaction.dto";
-import { TransactionFilters } from "./dto/transaction-filter.dto";
-import { TransactionResponse } from "./dto/transaction.dto";
-import { UpdateTransactionRequest } from "./dto/update-transaction.dto";
-import { TransactionsService } from "./transactions.service";
+import { CreateTransactionRequest } from "../dto/create-transaction.dto";
+import { TransactionFilters } from "../dto/transaction-filter.dto";
+import { AdvancedPaginatedTransactionResponse, PaginatedTransactionResponse } from "../dto/transaction-paginated.dto";
+import { TransactionResponse } from "../dto/transaction.dto";
+import { UpdateTransactionRequest } from "../dto/update-transaction.dto";
+import { TransactionsService } from "../services/transactions.service";
 
 @Controller("transactions")
 export class TransactionsController {

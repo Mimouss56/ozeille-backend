@@ -1,11 +1,11 @@
 import { Injectable } from "@nestjs/common";
 import { Transaction } from "src/generated/prisma/client";
 
-import { PaginatedDatabaseResponse } from "../common/types";
-import { CreateTransactionRequest } from "./dto/create-transaction.dto";
-import { TransactionFilters } from "./dto/transaction-filter.dto";
-import { UpdateTransactionRequest } from "./dto/update-transaction.dto";
-import { TransactionsRepository } from "./repository/transactions.repository";
+import { PaginatedDatabaseResponse } from "../../common/types";
+import { CreateTransactionRequest } from "../dto/create-transaction.dto";
+import { TransactionFilters } from "../dto/transaction-filter.dto";
+import { UpdateTransactionRequest } from "../dto/update-transaction.dto";
+import { TransactionsRepository } from "../repository/transactions.repository";
 
 @Injectable()
 export class TransactionsService {
