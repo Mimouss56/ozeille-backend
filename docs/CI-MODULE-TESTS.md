@@ -9,20 +9,14 @@ Le système CI/CD détecte automatiquement les modules modifiés dans un PR et e
 ```
 backend/apps/<service>/
 ├── src/
-│   ├── users/          # Module users
-│   ├── auth/           # Module auth
-│   └── mailer/         # Module mailer
+│   ├── <module>/          # Module
 ├── test/
 │   ├── ti/             # Tests d'intégration (TI)
-│   │   ├── users/
-│   │   │   ├── user.usecase.create.ti.spec.ts
-│   │   │   └── user.usecase.find.ti.spec.ts
-│   │   ├── auth/
-│   │   └── mailer/
+│   │   ├── <module>/
+│   │   │   ├── *.ti.spec.ts
 │   └── e2e/            # Tests end-to-end
-│       ├── users/
-│       │   └── users.e2e.spec.ts
-│       └── auth/
+│       ├── <module>/
+│       │   └── *.e2e.spec.ts
 ```
 
 ## Déclenchement des tests
@@ -34,8 +28,8 @@ Lorsqu'un PR cible `develop`, le workflow `.github/workflows/pr-module-tests.yml
 1. **Détecte les changements** : Analyse les fichiers modifiés dans `backend/apps/<service>/src/<module>/`
 2. **Identifie les modules** : Crée une liste des modules affectés par service
 3. **Exécute les tests ciblés** :
-   - Tests TI : `test/ti/<module>/*.ti.spec.ts`
-   - Tests E2E : `test/e2e/<module>/*.e2e.spec.ts`
+   - Tests TI : `<service>/test/ti/<module>/*.ti.spec.ts`
+   - Tests E2E : `<service>/test/e2e/<module>/*.e2e.spec.ts`
 
 ### Exemples de déclenchement
 
@@ -46,8 +40,8 @@ backend/apps/users-service/src/users/users.service.ts
 backend/apps/users-service/src/users/dto/create-user.dto.ts
 ```
 **Résultat** : Lance uniquement les tests pour le module `users` du service `users-service`
-- `test/ti/users/*.ti.spec.ts`
-- `test/e2e/users/*.e2e.spec.ts`
+- `users-service/test/ti/users/*.ti.spec.ts`
+- `users-service/test/e2e/users/*.e2e.spec.ts`
 
 #### Cas 2 : Modification de plusieurs modules
 ```bash
@@ -79,64 +73,50 @@ backend/apps/transactions-service/src/transactions/transactions.service.ts
 
 ## Scripts npm disponibles
 
-### users-service
+Chaque service (users-service, transactions-service) dispose des scripts suivants :
 
 ```bash
 # Tous les tests unitaires
 npm test
 
-# Tests TI uniquement
+# Tests TI uniquement (tous les modules)
 npm run test:ti
 
 # Tests TI pour un module spécifique
 MODULE=users npm run test:ti:module
 
+# Tests E2E classiques (tous les modules)
+npm run test:e2e
+
 # Tests E2E pour un module spécifique
 MODULE=auth npm run test:e2e:module
 
-# Tests E2E classiques
-npm run test:e2e
+# Build du service
+npm run build
+
+# Lint
+npm run lint
 ```
 
-## Configuration Jest
+### Configuration requise dans package.json
 
-### Tests unitaires classiques
-Utilise la config dans `package.json` (section `jest`)
-
-### Tests TI/E2E
-Utilise `test/jest-ti-e2e.json` pour :
-- Timeout plus long (30s)
-- Patterns de fichiers `*.ti.spec.ts` et `*.e2e.spec.ts`
-- Résolution des alias `src/*`
-
-## Workflows GitHub Actions
-
-### `.github/workflows/pr-module-tests.yml`
-- **Trigger** : Pull Request vers `develop` avec changements dans `backend/apps/**`
-- **Job `detect-changes`** : Détecte les services et modules modifiés
-- **Job `test-modules`** : Exécute les tests via matrice dynamique
-
-### `.github/workflows/ci-common.yml`
-- Workflow réutilisable appelé par `pr-module-tests.yml`
-- Reçoit en paramètres :
-  - `service` : nom du service à tester
-  - `modules` : liste des modules (ou `"all"`)
-  - `node-version` : version de Node.js
-- Provisionne Postgres automatiquement si nécessaire
-- Exécute lint, tests TI, tests E2E, et build
-
-## Services avec base de données
-
-Le service `transactions-service` nécessite PostgreSQL pour les tests. Le workflow provisionne automatiquement :
-- Service Docker `postgres:15-alpine`
-- Base de données `test_db`
-- Credentials : `postgres/postgres`
-- Variables d'environnement `DATABASE_URL` configurées automatiquement
-
-Prisma est automatiquement initialisé :
-```bash
-npx prisma generate
-npx prisma migrate deploy
+```json
+{
+  "scripts": {
+    "test": "jest",
+    "test:ti": "jest --testPathPattern=\"test/ti/.*\\.ti\\.spec\\.ts$\" --runInBand",
+    "test:ti:module": "jest --testPathPattern=\"test/ti/$MODULE/.*\\.ti\\.spec\\.ts$\" --runInBand",
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:e2e:module": "jest --testPathPattern=\"test/e2e/$MODULE/.*\\.e2e\\.spec\\.ts$\" --runInBand",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "build": "nest build"
+  },
+  "jest": {
+    "moduleNameMapper": {
+      "^src/(.*)$": "<rootDir>/../src/$1"
+    }
+  }
+}
 ```
 
 ## Bonnes pratiques
@@ -167,11 +147,42 @@ Ceci est configuré dans :
 - `tsconfig.json` : `"paths": { "src/*": ["src/*"] }`
 - `package.json` (section jest) : `"moduleNameMapper": { "^src/(.*)$": "<rootDir>/../src/$1" }`
 
+## Workflows GitHub Actions
+
+### pr-module-tests.yml
+**Déclenché par** : Pull Request vers `develop` avec changements dans `backend/apps/**`
+
+**Étapes** :
+1. Détecte les services et modules modifiés via `git diff`
+2. Génère une matrice JSON avec les services/modules à tester
+3. Lance `ci-common.yml` pour chaque entrée de la matrice en parallèle
+
+### ci-common.yml (workflow réutilisable)
+**Paramètres** :
+- `service` (required) : nom du service (ex: users-service)
+- `modules` (optional, default: "all") : liste comma-separated des modules
+- `node-version` (optional, default: "24") : version de Node.js
+
+**Étapes** :
+1. Provisionne PostgreSQL 15-alpine (service container)
+2. Setup Node.js et cache des dépendances
+3. Installation des dépendances (`npm ci`)
+4. Génération du client Prisma et migrations
+5. Lint ciblé sur les modules spécifiés
+6. Tests TI via `npm run test:ti` ou `npm run test:ti:module`
+7. Tests E2E via `npm run test:e2e` ou `npm run test:e2e:module`
+8. Build du service via `npm run build`
+
+**Variables d'environnement** :
+```yaml
+DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+```
+
 ## Débogage
 
 ### Voir les modules détectés
 
-Les logs GitHub Actions affichent :
+Les logs GitHub Actions affichent dans le job `detect-changes` :
 ```
 Changed files:
 backend/apps/users-service/src/users/users.service.ts
@@ -187,14 +198,39 @@ Generated matrix: {"include":[{"service":"users-service","modules":"users,auth"}
 cd backend
 git diff --name-only origin/develop...HEAD | grep "^backend/apps/"
 
-# Lancer les tests d'un module
+# Lancer les tests d'un module spécifique
 cd apps/users-service
-npm test -- --testPathPattern="test/ti/users/.*\.ti\.spec\.ts$" --runInBand
+MODULE=users npm run test:ti:module
+MODULE=users npm run test:e2e:module
+
+# Lancer tous les tests TI
+npm run test:ti
+
+# Lancer tous les tests E2E
+npm run test:e2e
 ```
 
-## Optimisations futures
+### Vérifier la configuration Jest
 
-- [ ] Cache des dépendances npm entre jobs
-- [ ] Parallélisation des tests au niveau module (actuellement par service)
-- [ ] Intégration SonarQube pour analyse de couverture par module
-- [ ] Notifications Slack/Discord avec détails des modules testés
+```bash
+# Afficher la config Jest résolue
+cd apps/users-service
+npx jest --showConfig
+
+# Vérifier le module mapper
+cat package.json | grep -A 5 "moduleNameMapper"
+```
+
+### Problèmes courants
+
+#### Erreur "Cannot find module 'src/...'"
+- Vérifier `tsconfig.json` : doit contenir `"paths": { "src/*": ["src/*"] }`
+- Vérifier `package.json` : doit contenir `"moduleNameMapper": { "^src/(.*)$": "<rootDir>/../src/$1" }`
+
+#### Tests non détectés
+- Vérifier le nommage : `*.ti.spec.ts` pour TI, `*.e2e.spec.ts` pour E2E
+- Vérifier l'emplacement : `test/ti/<module>/` ou `test/e2e/<module>/`
+
+#### PostgreSQL non disponible en local
+- Utiliser Docker : `docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres:15-alpine`
+- Ou configurer `DATABASE_URL` vers une autre instance

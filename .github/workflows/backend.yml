@@ -15,9 +15,9 @@ on:
       - "backend/**"
 
 jobs:
-  call-ci-common:
-    uses: ./.github/workflows/ci-common.yml
-    with:
-      path: ./backend
-      node-version: "24"
+  # On PR: use pr-module-tests.yml for smart module detection
+  # On push to develop: full pipeline is handled by develop-pipeline.yml
+  call-pr-tests:
+    if: github.event_name == 'pull_request'
+    uses: ./.github/workflows/pr-module-tests.yml
     secrets: inherit

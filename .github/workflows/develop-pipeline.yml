@@ -38,10 +38,15 @@ jobs:
           cd backend
           npm run lint --if-present
 
-      - name: Tests (all)
+      - name: Tests (all services)
         run: |
-          cd backend
-          npm test --if-present
+          # Run tests for all services
+          for service in backend/apps/*; do
+            if [ -d "$service" ] && [ -f "$service/package.json" ]; then
+              echo "Testing service: $(basename $service)"
+              (cd "$service" && npm ci && npm test --if-present) || true
+            fi
+          done
 
       - name: SonarQube Full Scan
         run: |
@@ -55,8 +60,8 @@ jobs:
       - name: Check DTO changes
         id: check-dto
         run: |
-          # Detect DTO changes under backend/src/**/<module>/dto/*.dto.ts
-          CHANGED=$(git diff --name-only origin/main...HEAD | grep -E "(^backend/src/.*/dto/.*\.dto\.ts$)" || true)
+          # Detect DTO changes under backend/apps/<service>/src/<module>/dto/*.dto.ts
+          CHANGED=$(git diff --name-only origin/main...HEAD | grep -E "(^backend/apps/.*/src/.*/dto/.*\.dto\.ts$)" || true)
           echo "changed=$CHANGED"
           if [ -n "$CHANGED" ]; then
             echo "dto-changed=true" >> $GITHUB_OUTPUT

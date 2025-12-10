@@ -91,12 +91,12 @@ jobs:
         run: |
           if [ "${{ inputs.modules }}" = "all" ]; then
             echo "Running all TI tests"
-            npm test -- --testPathPattern="test/ti/.*\.ti\.spec\.ts$" --runInBand || true
+            npm run test:ti || true
           else
             IFS=',' read -ra MODS <<< "${{ inputs.modules }}"
             for mod in "${MODS[@]}"; do
               echo "Running TI tests for module: $mod"
-              npm test -- --testPathPattern="test/ti/$mod/.*\.ti\.spec\.ts$" --runInBand || true
+              MODULE=$mod npm run test:ti:module || true
             done
           fi
 
@@ -111,12 +111,16 @@ jobs:
             for mod in "${MODS[@]}"; do
               echo "Running E2E tests for module: $mod"
               if [ -d "test/e2e/$mod" ]; then
-                npm test -- --testPathPattern="test/e2e/$mod/.*\.e2e\.spec\.ts$" --runInBand || true
+                MODULE=$mod npm run test:e2e:module || true
               else
                 echo "No E2E tests found for module $mod"
               fi
             done
           fi
+
+      - name: Build
+        working-directory: backend/apps/${{ inputs.service }}
+        run: npm run build
 
       - name: Build
         working-directory: backend/apps/${{ inputs.service }}
