@@ -2,11 +2,13 @@ import { Injectable } from "@nestjs/common";
 import { Prisma, User } from "src/generated/prisma/client";
 import { PrismaService } from "src/prisma/prisma.service";
 
+import { UserEntity } from "../entities/user.entity";
+
 @Injectable()
 export class UserUsecaseCreate {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(userData: Prisma.UserCreateInput): Promise<User> {
+  async create(userData: Prisma.UserCreateInput): Promise<UserEntity> {
     let userCreated: User;
 
     try {
@@ -14,6 +16,9 @@ export class UserUsecaseCreate {
     } catch {
       throw new Error("Error creating user");
     }
-    return userCreated;
+    // eslint-disable-next-line unused-imports/no-unused-vars
+    const { password, ...userWithoutPassword } = userCreated;
+
+    return userWithoutPassword;
   }
 }
