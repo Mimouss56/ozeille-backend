@@ -94,7 +94,7 @@ jobs:
           fi
 
   test-modules:
-    name: Test ${{ matrix.service }} (${{ matrix.modules }})
+    name: Test ${{ matrix.service }}
     needs: detect-changes
     if: needs.detect-changes.outputs.has-changes == 'true'
     strategy:

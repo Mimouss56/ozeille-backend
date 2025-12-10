@@ -13,7 +13,9 @@ export class AuthUsecaseVerifyConfirmation {
   async verify(token: string): Promise<boolean> {
     try {
       const redisKey = `confirm-email-token:${token}`;
-      const userId = (await this.redis.get(redisKey)) as string | undefined;
+      const resultRedis = await this.redis.get(redisKey);
+
+      const userId = resultRedis;
       if (!userId) return false;
 
       // update user confirmedAt
