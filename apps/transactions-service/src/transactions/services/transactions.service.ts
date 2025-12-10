@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { Transaction } from "src/generated/prisma/client";
 
 import { PaginatedDatabaseResponse } from "../../common/types";
@@ -19,26 +19,28 @@ export class TransactionsService {
     return this.repository.getAll(params);
   }
 
-  findOne(id: string): Promise<Transaction | null> {
-    return this.repository.getById(id);
-  }
-
-  async update(id: string, updateTransactionRequest: UpdateTransactionRequest): Promise<Transaction | null> {
+  /**
+   * Find a transaction by its ID. If the transaction is not found, a 404 error is thrown.
+   * @param {string} id
+   */
+  async findOneById(id: string): Promise<Transaction> {
     const transaction = await this.repository.getById(id);
 
     if (!transaction) {
-      return null;
+      throw new NotFoundException("The transaction with the given ID was not found.");
     }
+
+    return transaction;
+  }
+
+  async update(id: string, updateTransactionRequest: UpdateTransactionRequest): Promise<Transaction> {
+    await this.findOneById(id);
 
     return this.repository.updateOne(id, updateTransactionRequest);
   }
 
-  async remove(id: string): Promise<Transaction | null> {
-    const transaction = await this.repository.getById(id);
-
-    if (!transaction) {
-      return null;
-    }
+  async remove(id: string): Promise<Transaction> {
+    await this.findOneById(id);
 
     return this.repository.remove(id);
   }

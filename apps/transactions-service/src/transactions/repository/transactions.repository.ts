@@ -57,11 +57,11 @@ export class TransactionsRepository {
     return this.prisma.transaction.create({ data: transaction });
   }
 
-  updateOne(id: string, transaction: UpdateTransactionRequest): Promise<Transaction | null> {
+  updateOne(id: string, transaction: UpdateTransactionRequest): Promise<Transaction> {
     return this.prisma.transaction.update({ where: { id }, data: transaction });
   }
 
-  remove(id: string): Promise<Transaction | null> {
+  remove(id: string): Promise<Transaction> {
     return this.prisma.transaction.delete({ where: { id } });
   }
 }
