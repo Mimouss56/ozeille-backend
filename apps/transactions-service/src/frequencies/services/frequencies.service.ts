@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { Frequency } from "src/generated/prisma/client";
 
 import { CreateFrequencyRequest } from "../dto/create-frequency.dto";
@@ -21,7 +21,7 @@ export class FrequenciesService {
     const frequency = await this.repository.getById(id);
 
     if (!frequency) {
-      throw new Error("The frequency with the given ID was not found.");
+      throw new NotFoundException("The frequency with the given ID was not found.");
     }
 
     return frequency;
