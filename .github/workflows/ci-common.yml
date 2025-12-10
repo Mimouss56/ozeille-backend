@@ -20,7 +20,7 @@ on:
 
 jobs:
   detect-and-test:
-    name: Test ${{ inputs.service }} - ${{ inputs.modules }}
+    name: Test ${{ inputs.service }}
     runs-on: ubuntu-latest
     services:
       postgres:
