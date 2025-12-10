@@ -30,6 +30,20 @@ RUN npm run build
 
 # --- Build final --
 FROM base AS production
-COPY --from=prod-deps /home/node/app/node_modules node_modules
-COPY --from=build /home/node/app/dist dist
-CMD ["node", "dist/main" ]
+
+# -- A custom script which handle all logics when service start
+WORKDIR /home/node/script
+COPY --chown=node:node ./docker/entrypoint-prod.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
+
+# -- Import all migrations and the config file needed for the migration
+WORKDIR /home/node/db
+COPY --from=build /home/node/app/prisma /home/node/db/prisma
+COPY --from=build /home/node/app/prisma.config.ts /home/node/db/prisma.config.ts
+
+# -- Import all necessaries files for the service
+WORKDIR /home/node/app
+COPY --from=prod-deps --chown=node:node /home/node/app/node_modules node_modules
+COPY --from=build --chown=node:node /home/node/app/dist ./
+
+CMD ["../script/entrypoint.sh"]
