@@ -4,10 +4,12 @@ import { cleanupOpenApiDoc } from "nestjs-zod";
 
 import { AppModule } from "./app.module";
 import { ZodValidationExceptionFilter } from "./common/filters/validation.filter";
+import { PrismaExceptionFilter } from "./common/filters/prisma-exception.filter";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.useGlobalFilters(new ZodValidationExceptionFilter());
+
+  app.useGlobalFilters(new ZodValidationExceptionFilter(), new PrismaExceptionFilter());
 
   const config = new DocumentBuilder()
     .setTitle("LaPince Api NestJs")

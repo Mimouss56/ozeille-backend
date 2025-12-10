@@ -8,7 +8,9 @@ model Transaction {
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(0)
   // endDate   DateTime? @map("end_date")
   //categoryId
-  // frenquencyId
+  frequencyId String?    @map("frequency_id")
+  frequency   Frequency? @relation(fields: [frequencyId], references: [id])
+  
 
   @@map("transactions")
 }

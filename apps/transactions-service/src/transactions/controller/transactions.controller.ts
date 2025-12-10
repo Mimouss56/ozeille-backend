@@ -1,16 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  NotFoundException,
-  Param,
-  ParseUUIDPipe,
-  Post,
-  Put,
-  Query,
-  UseInterceptors,
-} from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put, Query, UseInterceptors } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiCreatedResponse,
@@ -19,18 +7,18 @@ import {
   ApiOkResponse,
   getSchemaPath,
 } from "@nestjs/swagger";
+import { ErrorResponse } from "src/common/dto/base-error.dto";
 import { ValidationErrorResponse } from "src/common/dto/validation-error.dto";
+import { PaginatedResponseInterceptor } from "src/common/interceptors/paginated-response.interceptor";
+import { PaginatedDatabaseResponse } from "src/common/types";
 import { type Transaction } from "src/generated/prisma/client";
 
-import { ErrorResponse } from "../common/dto/base-error.dto";
-import { PaginationFilters } from "../common/dto/pagination.dto";
-import { PaginatedResponseInterceptor } from "../common/interceptors/paginated-response.interceptor";
-import { PaginatedDatabaseResponse } from "../common/types";
-import { CreateTransactionRequest } from "./dto/create-transaction.dto";
-import { AdvancedPaginatedTransactionResponse, PaginatedTransactionResponse } from "./dto/paginated-transaction.dto";
-import { TransactionResponse } from "./dto/transaction.dto";
-import { UpdateTransactionRequest } from "./dto/update-transaction.dto";
-import { TransactionsService } from "./transactions.service";
+import { CreateTransactionRequest } from "../dto/create-transaction.dto";
+import { TransactionFilters } from "../dto/transaction-filter.dto";
+import { AdvancedPaginatedTransactionResponse, PaginatedTransactionResponse } from "../dto/transaction-paginated.dto";
+import { TransactionResponse } from "../dto/transaction.dto";
+import { UpdateTransactionRequest } from "../dto/update-transaction.dto";
+import { TransactionsService } from "../services/transactions.service";
 
 @Controller("transactions")
 export class TransactionsController {
@@ -64,7 +52,7 @@ export class TransactionsController {
       },
     },
   })
-  async findAll(@Query() params: PaginationFilters): Promise<PaginatedDatabaseResponse<Transaction>> {
+  async findAll(@Query() params: TransactionFilters): Promise<PaginatedDatabaseResponse<Transaction>> {
     return this.transactionsService.findAll(params);
   }
 
@@ -77,13 +65,7 @@ export class TransactionsController {
     type: ErrorResponse,
   })
   async findOne(@Param("id", ParseUUIDPipe) id: string): Promise<Transaction> {
-    const transaction = await this.transactionsService.findOne(id);
-
-    if (!transaction) {
-      throw new NotFoundException("The transaction with the given ID was not found.");
-    }
-
-    return transaction;
+    return this.transactionsService.findOneById(id);
   }
 
   @Put(":id")
@@ -98,13 +80,7 @@ export class TransactionsController {
     @Param("id", ParseUUIDPipe) id: string,
     @Body() updateTransactionRequest: UpdateTransactionRequest,
   ): Promise<Transaction> {
-    const transaction = await this.transactionsService.update(id, updateTransactionRequest);
-
-    if (!transaction) {
-      throw new NotFoundException("The transaction with the given ID was not found.");
-    }
-
-    return transaction;
+    return this.transactionsService.update(id, updateTransactionRequest);
   }
 
   @Delete(":id")
@@ -116,12 +92,6 @@ export class TransactionsController {
     type: ErrorResponse,
   })
   async remove(@Param("id", ParseUUIDPipe) id: string): Promise<Transaction> {
-    const transaction = await this.transactionsService.remove(id);
-
-    if (!transaction) {
-      throw new NotFoundException("The transaction with the given ID was not found.");
-    }
-
-    return transaction;
+    return this.transactionsService.remove(id);
   }
 }
