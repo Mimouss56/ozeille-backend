@@ -44,6 +44,6 @@ export class UsersUsecaseRegister {
     }
 
     // service mailer envois email de confirmation
-    await this.mailerUsecaseConfirmEmail.sendConfirmationEmail(userCreated);
+    await this.mailerUsecaseConfirmEmail.registerEmail(userCreated.email);
   }
 }

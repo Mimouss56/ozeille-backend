@@ -1,7 +1,8 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { createHash, randomBytes } from "crypto";
 import Redis from "ioredis";
 import { UserEntity } from "src/users/entities/user.entity";
+import { UserUsecaseFind } from "src/users/usecases/user.usecase.find-by";
 
 import { MailerUsecaseSendMail } from "./mailer.usecase.send-mail";
 
@@ -11,6 +12,7 @@ export class MailerUsecaseConfirmEmail {
 
   constructor(
     private readonly mailerUsecaseSendMail: MailerUsecaseSendMail,
+    private readonly userUsecaseFind: UserUsecaseFind,
     private readonly redis: Redis,
   ) {}
 
@@ -21,24 +23,30 @@ export class MailerUsecaseConfirmEmail {
    * Seul son hash est stocké en base (ici Redis) pour éviter d'exposer
    * directement la valeur si Redis est compromis.
    */
-  async sendConfirmationEmail(user: UserEntity): Promise<void> {
-    // generate a random token (32 bytes -> 64 hex chars)
-    const token = randomBytes(32).toString("hex");
+  async registerEmail(email: UserEntity["email"]): Promise<void> {
+    const redisKey = await this.generateAndStoreToken(email);
 
-    // hash the token before storing to Redis
-    const tokenHash = createHash("sha256").update(token).digest("hex");
+    try {
+      await this.sendConfirmationEmail(email, redisKey);
+    } catch (err) {
+      this.logger.error(`Failed to send confirmation email to ${email}: ${err}`);
+      // si l'envoi échoue, supprimer le token stocké
+      await this.redis.del(redisKey);
+      throw err;
+    }
+  }
 
-    // store hash with expiration (e.g., 10 minutes)
-    const redisKey = `confirm-email-token:${tokenHash}`;
-    await this.redis.set(redisKey, user.email, "EX", 10 * 60);
-
+  async sendConfirmationEmail(email: UserEntity["email"], token: string): Promise<void> {
+    const user = await this.userUsecaseFind.findByEmail(email);
+    if (!user) {
+      throw new NotFoundException();
+    }
     const subject = "Confirmez votre compte";
+    const path = "/confirm-email";
 
-    // build confirmation link — assume FRONTEND or API_URL env var, fallback to relative path
     const baseUrl = process.env.FRONTEND_URL ?? process.env.API_URL ?? "";
 
-    const path = "/confirm-email";
-    const href = baseUrl ? `${baseUrl.replace(/\/$/, "")}${path}?token=${tokenHash}` : `${path}?token=${tokenHash}`;
+    const href = baseUrl ? `${baseUrl.replace(/\/$/, "")}${path}?token=${token}` : `${path}?token=${token}`;
 
     const html = `
       <p>Bonjour ${user.firstName ?? ""},</p>
@@ -50,12 +58,25 @@ export class MailerUsecaseConfirmEmail {
     `;
 
     try {
-      await this.mailerUsecaseSendMail.sendMail(user.email, subject, html);
-    } catch (err) {
-      this.logger.error(`Failed to send confirmation email to ${user.email}: ${err}`);
-      // si l'envoi échoue, supprimer le token stocké
-      await this.redis.del(redisKey);
-      throw err;
+      await this.mailerUsecaseSendMail.sendMail(email, subject, html);
+    } catch (error) {
+      throw new Error(`Failed to send confirmation email: ${error}`);
     }
+  }
+
+  /**
+   * Génère un token aléatoire, stocke son hash en Redis avec une expiration,
+   */
+  async generateAndStoreToken(email: string): Promise<string> {
+    // generate a random token (32 bytes -> 64 hex chars)
+    const token = randomBytes(32).toString("hex");
+
+    // hash the token before storing to Redis
+    const tokenHash = createHash("sha256").update(token).digest("hex");
+
+    // store hash with expiration (e.g., 10 minutes)
+    const redisKey = `confirm-email-token:${tokenHash}`;
+    await this.redis.set(redisKey, email, "EX", 10 * 60);
+    return tokenHash;
   }
 }

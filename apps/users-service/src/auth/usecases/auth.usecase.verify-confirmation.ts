@@ -17,7 +17,9 @@ export class AuthUsecaseVerifyConfirmation {
     if (!resultRedis) return false;
 
     // update user confirmedAt
-    await this.prisma.user.update({ where: { email: resultRedis }, data: { confirmedAt: new Date() } });
+    //via usecase updateUser
+    //TODO: @mlp
+    // await this.prisma.user.update({ where: { email: resultRedis }, data: { confirmedAt: new Date() } });
 
     // delete redis key
     await this.redis.del(redisKey);

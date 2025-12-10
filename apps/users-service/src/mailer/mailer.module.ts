@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import Redis from "ioredis";
 import { PrismaService } from "src/prisma/prisma.service";
+import { UserUsecaseFind } from "src/users/usecases/user.usecase.find-by";
 
 import { AuthUsecaseVerifyConfirmation } from "../auth/usecases/auth.usecase.verify-confirmation";
 import { MailerAlreadyExistUsecase } from "./usecase/mailer.usecase.already-exist";
@@ -15,6 +16,7 @@ import { MailerUsecaseSendMail } from "./usecase/mailer.usecase.send-mail";
     MailerUsecaseSendMail,
     MailerUsecaseConfirmEmail,
     AuthUsecaseVerifyConfirmation,
+    UserUsecaseFind,
     PrismaService,
     ConfigService,
     Redis,
