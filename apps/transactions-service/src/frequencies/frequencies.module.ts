@@ -1,9 +1,9 @@
 import { Module } from "@nestjs/common";
 import { PrismaService } from "src/prisma/prisma.service";
 
-import { FrequenciesController } from "./frequencies.controller";
-import { FrequenciesService } from "./frequencies.service";
+import { FrequenciesController } from "./controller/frequencies.controller";
 import { FrequenciesRepository } from "./repository/frequencies.repository";
+import { FrequenciesService } from "./services/frequencies.service";
 
 @Module({
   controllers: [FrequenciesController],

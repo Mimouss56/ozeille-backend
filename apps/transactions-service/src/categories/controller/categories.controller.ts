@@ -1,14 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  NotFoundException,
-  Param,
-  ParseUUIDPipe,
-  Post,
-  Put,
-} from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiConflictResponse,
@@ -21,10 +11,10 @@ import { ErrorResponse } from "src/common/dto/base-error.dto";
 import { ValidationErrorResponse } from "src/common/dto/validation-error.dto";
 import { Category } from "src/generated/prisma/client";
 
-import { CategoriesService } from "./categories.service";
-import { CategoryResponse } from "./dto/category.dto";
-import { CreateCategoryRequest } from "./dto/create-category.dto";
-import { UpdateCategoryRequest } from "./dto/update-category.dto";
+import { CategoryResponse } from "../dto/category.dto";
+import { CreateCategoryRequest } from "../dto/create-category.dto";
+import { UpdateCategoryRequest } from "../dto/update-category.dto";
+import { CategoriesService } from "../services/categories.service";
 
 @ApiTags("Categories")
 @Controller("categories")
@@ -50,9 +40,9 @@ export class CategoriesController {
     description: "Validation failed",
     type: ValidationErrorResponse,
   })
-  @ApiConflictResponse({ 
+  @ApiConflictResponse({
     description: "A category with this label already exists for this budget",
-    type: ErrorResponse 
+    type: ErrorResponse,
   })
   async create(@Body() createCategoryRequest: CreateCategoryRequest): Promise<Category> {
     return this.categoriesService.create(createCategoryRequest);
@@ -68,13 +58,7 @@ export class CategoriesController {
     type: ErrorResponse,
   })
   async findOne(@Param("id", ParseUUIDPipe) id: string): Promise<Category> {
-    const category = await this.categoriesService.findOne(id);
-
-    if (!category) {
-      throw new NotFoundException("The category with the given ID was not found.");
-    }
-
-    return category;
+    return this.categoriesService.findOneById(id);
   }
 
   @Put(":id")
@@ -94,13 +78,7 @@ export class CategoriesController {
     @Param("id", ParseUUIDPipe) id: string,
     @Body() updateCategoryRequest: UpdateCategoryRequest,
   ): Promise<Category> {
-    const category = await this.categoriesService.update(id, updateCategoryRequest);
-
-    if (!category) {
-      throw new NotFoundException("The category with the given ID was not found.");
-    }
-
-    return category;
+    return this.categoriesService.update(id, updateCategoryRequest);
   }
 
   @Delete(":id")
@@ -113,12 +91,6 @@ export class CategoriesController {
     type: ErrorResponse,
   })
   async remove(@Param("id", ParseUUIDPipe) id: string): Promise<Category> {
-    const category = await this.categoriesService.remove(id);
-
-    if (!category) {
-      throw new NotFoundException("The category with the given ID was not found.");
-    }
-
-    return category;
+    return this.categoriesService.remove(id);
   }
 }

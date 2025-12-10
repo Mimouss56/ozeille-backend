@@ -2,10 +2,10 @@ import { Module } from "@nestjs/common";
 import { APP_INTERCEPTOR, APP_PIPE } from "@nestjs/core";
 import { ZodSerializerInterceptor, ZodValidationPipe } from "nestjs-zod";
 
-import { TransactionsModule } from "./transactions/transactions.module";
 import { BudgetsModule } from "./budgets/budgets.module";
 import { CategoriesModule } from "./categories/categories.module";
-import { FrequenciesModule } from './frequencies/frequencies.module';
+import { FrequenciesModule } from "./frequencies/frequencies.module";
+import { TransactionsModule } from "./transactions/transactions.module";
 
 @Module({
   imports: [TransactionsModule, BudgetsModule, FrequenciesModule, CategoriesModule],

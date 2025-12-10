@@ -1,13 +1,13 @@
-import { Body, Controller, Delete, Get, NotFoundException, Param, ParseUUIDPipe, Post, Put } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put } from "@nestjs/common";
 import { ApiBadRequestResponse, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse } from "@nestjs/swagger";
+import { ErrorResponse } from "src/common/dto/base-error.dto";
 import { ValidationErrorResponse } from "src/common/dto/validation-error.dto";
 import { Budget } from "src/generated/prisma/client";
 
-import { BudgetsService } from "./budgets.service";
-import { BudgetResponse } from "./dto/budget.dto";
-import { CreateBudgetRequest } from "./dto/create-budget.dto";
-import { ErrorResponse } from "src/common/dto/base-error.dto";
-import { UpdateBudgetRequest } from "./dto/update-budget.dto";
+import { BudgetResponse } from "../dto/budget.dto";
+import { CreateBudgetRequest } from "../dto/create-budget.dto";
+import { UpdateBudgetRequest } from "../dto/update-budget.dto";
+import { BudgetsService } from "../services/budgets.service";
 
 @Controller("budgets")
 export class BudgetsController {
@@ -46,13 +46,7 @@ export class BudgetsController {
     type: ErrorResponse,
   })
   async findOne(@Param("id", ParseUUIDPipe) id: string): Promise<Budget> {
-    const budget = await this.budgetsService.findOne(id);
-
-    if (!budget) {
-      throw new NotFoundException("The budget with the given ID was not found.");
-    }
-
-    return budget;
+    return this.budgetsService.findOne(id);
   }
 
   @Put(":id")
@@ -72,13 +66,7 @@ export class BudgetsController {
     @Param("id", ParseUUIDPipe) id: string,
     @Body() updateBudgetRequest: UpdateBudgetRequest,
   ): Promise<Budget> {
-    const budget = await this.budgetsService.update(id, updateBudgetRequest);
-
-    if (!budget) {
-      throw new NotFoundException("The budget with the given ID was not found.");
-    }
-
-    return budget;
+    return this.budgetsService.update(id, updateBudgetRequest);
   }
 
   @Delete(":id")
@@ -91,12 +79,6 @@ export class BudgetsController {
     type: ErrorResponse,
   })
   async remove(@Param("id", ParseUUIDPipe) id: string): Promise<Budget> {
-    const budget = await this.budgetsService.remove(id);
-
-    if (!budget) {
-      throw new NotFoundException("The budget with the given ID was not found.");
-    }
-
-    return budget;
+    return this.budgetsService.remove(id);
   }
 }

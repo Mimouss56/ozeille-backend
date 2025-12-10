@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, NotFoundException, Param, ParseUUIDPipe, Patch, Post } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiCreatedResponse,
@@ -6,13 +6,14 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
 } from "@nestjs/swagger";
+import { ErrorResponse } from "src/common/dto/base-error.dto";
 import { ValidationErrorResponse } from "src/common/dto/validation-error.dto";
 import { Frequency } from "src/generated/prisma/client";
 
-import { CreateFrequencyRequest } from "./dto/create-frequency.dto";
-import { FrequencyResponse } from "./dto/frequency.dto";
-import { UpdateFrequencyRequest } from "./dto/update-frequency.dto";
-import { FrequenciesService } from "./frequencies.service";
+import { CreateFrequencyRequest } from "../dto/create-frequency.dto";
+import { FrequencyResponse } from "../dto/frequency.dto";
+import { UpdateFrequencyRequest } from "../dto/update-frequency.dto";
+import { FrequenciesService } from "../services/frequencies.service";
 
 @Controller("frequencies")
 export class FrequenciesController {
@@ -51,33 +52,25 @@ export class FrequenciesController {
   })
   @ApiNotFoundResponse({
     description: "Frequency not found",
-    type: FrequencyResponse,
+    type: ErrorResponse,
   })
   async findOne(@Param("id", ParseUUIDPipe) id: string): Promise<Frequency | null> {
-    const frequency = await this.frequenciesService.findOne(id);
-
-    if (!frequency) throw new NotFoundException("The frequency with the given ID was not found");
-
-    return frequency;
+    return this.frequenciesService.findOneById(id);
   }
 
-  @Patch(":id")
+  @Put(":id")
   @ApiOkResponse({
     type: FrequencyResponse,
   })
   @ApiNotFoundResponse({
     description: "The frequency with the given ID was not found",
-    type: FrequencyResponse,
+    type: ErrorResponse,
   })
   async update(
     @Param("id", ParseUUIDPipe) id: string,
     @Body() updateFrequencyDto: UpdateFrequencyRequest,
   ): Promise<Frequency | null> {
-    const frequency = this.frequenciesService.update(id, updateFrequencyDto);
-
-    if (!frequency) throw new NotFoundException("The frequency with the given ID was not found");
-
-    return frequency;
+    return this.frequenciesService.update(id, updateFrequencyDto);
   }
 
   @Delete(":id")
@@ -86,13 +79,9 @@ export class FrequenciesController {
   })
   @ApiNotFoundResponse({
     description: "The frequency with the given ID was not found",
-    type: FrequencyResponse,
+    type: ErrorResponse,
   })
   async remove(@Param("id", ParseUUIDPipe) id: string): Promise<Frequency | null> {
-    const frequency = await this.frequenciesService.remove(id);
-
-    if (!frequency) throw new NotFoundException("The frequency with the given ID was not found");
-
-    return frequency;
+    return this.frequenciesService.remove(id);
   }
 }
