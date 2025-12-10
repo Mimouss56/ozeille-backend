@@ -21,7 +21,7 @@ export class BudgetsRepository {
     return this.prisma.budget.findUnique({ where: { id } });
   }
 
-  updateOne(id: string, budget: UpdateBudgetRequest): Promise<Budget | null> {
+  updateOne(id: string, budget: UpdateBudgetRequest): Promise<Budget> {
     return this.prisma.budget.update({ where: { id }, data: budget });
   }
 
