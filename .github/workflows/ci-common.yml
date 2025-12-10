@@ -88,9 +88,13 @@ jobs:
         run: |
           IFS=',' read -ra MODS <<< "${{ inputs.modules }}"
           for mod in "${MODS[@]}"; do
-            echo "::group::Running TI tests for module: $mod"
-            npx jest --testPathPattern=\"test/ti/$MODULE/.*\\.e2e\\.spec\\.ts$\" --runInBand || echo "⚠️ TI tests failed for $mod"
-            echo "::endgroup::"
+            if [ -d "test/ti/$mod" ]; then
+              echo "::group::Running TI tests for module: $mod"
+              npx jest --testPathPattern="test/ti/$mod/.*\\.ti\\.spec\\.ts$" --runInBand
+              echo "::endgroup::"
+            else
+              echo "ℹ️ No TI tests found for module $mod"
+            fi
           done
 
       - name: Run E2E Tests sequentially
@@ -100,7 +104,7 @@ jobs:
           for mod in "${MODS[@]}"; do
             if [ -d "test/e2e/$mod" ]; then
               echo "::group::Running E2E tests for module: $mod"
-              npx jest --testPathPattern=\"test/e2e/$MODULE/.*\\.e2e\\.spec\\.ts$\" --runInBand || echo "⚠️ E2E tests failed for $mod"
+              npx jest --testPathPattern="test/e2e/$mod/.*\\.e2e\\.spec\\.ts$" --runInBand
               echo "::endgroup::"
             else
               echo "ℹ️ No E2E tests found for module $mod"
