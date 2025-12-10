@@ -56,17 +56,17 @@ jobs:
         with:
           path: |
             ~/.npm
-            backend/apps/${{ inputs.service }}/node_modules
-          key: ${{ runner.os }}-node-${{ inputs.node-version }}-${{ inputs.service }}-${{ hashFiles(format('backend/apps/{0}/package-lock.json', inputs.service)) }}
+            apps/${{ inputs.service }}/node_modules
+          key: ${{ runner.os }}-node-${{ inputs.node-version }}-${{ inputs.service }}-${{ hashFiles(format('apps/{0}/package-lock.json', inputs.service)) }}
           restore-keys: |
             ${{ runner.os }}-node-${{ inputs.node-version }}-${{ inputs.service }}-
 
       - name: Install dependencies
-        working-directory: backend/apps/${{ inputs.service }}
+        working-directory: apps/${{ inputs.service }}
         run: npm ci
 
       - name: Generate Prisma Client
-        working-directory: backend/apps/${{ inputs.service }}
+        working-directory: apps/${{ inputs.service }}
         run: |
           if [ -f "prisma/schema.prisma" ]; then
             npx prisma generate
@@ -74,7 +74,7 @@ jobs:
           fi
 
       - name: Run Lint for modules
-        working-directory: backend/apps/${{ inputs.service }}
+        working-directory: apps/${{ inputs.service }}
         run: |
           if [ "${{ inputs.modules }}" = "all" ]; then
             npm run lint
@@ -87,7 +87,7 @@ jobs:
           fi
 
       - name: Run TI Tests
-        working-directory: backend/apps/${{ inputs.service }}
+        working-directory: apps/${{ inputs.service }}
         run: |
           if [ "${{ inputs.modules }}" = "all" ]; then
             echo "Running all TI tests"
@@ -101,7 +101,7 @@ jobs:
           fi
 
       - name: Run E2E Tests
-        working-directory: backend/apps/${{ inputs.service }}
+        working-directory: apps/${{ inputs.service }}
         run: |
           if [ "${{ inputs.modules }}" = "all" ]; then
             echo "Running all E2E tests"
@@ -119,9 +119,5 @@ jobs:
           fi
 
       - name: Build
-        working-directory: backend/apps/${{ inputs.service }}
-        run: npm run build
-
-      - name: Build
-        working-directory: backend/apps/${{ inputs.service }}
+        working-directory: apps/${{ inputs.service }}
         run: npm run build

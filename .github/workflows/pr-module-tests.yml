@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [develop]
     paths:
-      - "backend/apps/**"
+      - "apps/**"
       - ".github/workflows/pr-module-tests.yml"
       - ".github/workflows/ci-common.yml"
 
@@ -49,15 +49,16 @@ jobs:
             
             # Detect available services dynamically
             MATRIX_ITEMS=()
-            for service_dir in backend/apps/*/; do
+            for service_dir in apps/*/; do
               if [ -d "$service_dir" ] && [ -f "$service_dir/package.json" ]; then
                 service=$(basename "$service_dir")
+                echo "Found service: $service"
                 MATRIX_ITEMS+=("{\"service\":\"$service\",\"modules\":\"all\"}")
               fi
             done
             
             if [ ${#MATRIX_ITEMS[@]} -eq 0 ]; then
-              echo "No services found"
+              echo "No services found in apps/"
               echo "has-changes=false" >> $GITHUB_OUTPUT
               echo "services-matrix={\"include\":[]}" >> $GITHUB_OUTPUT
               exit 0
@@ -70,25 +71,25 @@ jobs:
             exit 0
           fi
 
-          # Get changed files in backend/apps only
-          CHANGED_FILES=$(echo "$ALL_CHANGED_FILES" | grep "^backend/apps/" || true)
+          # Get changed files in apps only
+          CHANGED_FILES=$(echo "$ALL_CHANGED_FILES" | grep "^apps/" || true)
 
           if [ -z "$CHANGED_FILES" ]; then
-            echo "No changes in backend/apps or workflows"
+            echo "No changes in apps/ or workflows"
             echo "has-changes=false" >> $GITHUB_OUTPUT
             echo "services-matrix={\"include\":[]}" >> $GITHUB_OUTPUT
             exit 0
           fi
 
-          echo "Changed files in backend/apps:"
+          echo "Changed files in apps/:"
           echo "$CHANGED_FILES"
 
           # Build services and modules map
           declare -A SERVICE_MODULES
 
           while IFS= read -r file; do
-            # Match: backend/apps/<service>/src/<module>/...
-            if [[ $file =~ ^backend/apps/([^/]+)/src/([^/]+)/ ]]; then
+            # Match: apps/<service>/src/<module>/...
+            if [[ $file =~ ^apps/([^/]+)/src/([^/]+)/ ]]; then
               service="${BASH_REMATCH[1]}"
               module="${BASH_REMATCH[2]}"
               
@@ -102,7 +103,7 @@ jobs:
                 fi
               fi
             # If changes outside src/<module> (config, tests, etc.), test all modules
-            elif [[ $file =~ ^backend/apps/([^/]+)/ ]]; then
+            elif [[ $file =~ ^apps/([^/]+)/ ]]; then
               service="${BASH_REMATCH[1]}"
               SERVICE_MODULES[$service]="all"
             fi
