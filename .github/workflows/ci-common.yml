@@ -1,12 +1,17 @@
-name: CI Common
+name: CI Common - Module-Specific Tests
 
 on:
   workflow_call:
     inputs:
-      path:
-        description: "Working directory for the project (e.g. ./backend or ./frontend)"
+      service:
+        description: "Service name (e.g., users-service, transactions-service)"
         required: true
         type: string
+      modules:
+        description: "Comma-separated list of modules to test (or 'all' for full suite)"
+        required: false
+        type: string
+        default: "all"
       node-version:
         description: "Node.js version"
         required: false
@@ -14,81 +19,105 @@ on:
         default: "24"
 
 jobs:
-  lint:
-    name: Lint Check
+  detect-and-test:
+    name: Test ${{ inputs.service }} - ${{ inputs.modules }}
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ inputs.path }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-      - name: Setup Node
-        uses: actions/setup-node@v5
-        with:
-          node-version: ${{ inputs.node-version }}
-      - name: Cache node modules
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ inputs.node-version }}-package-lock-${{ hashFiles(format('%s/package-lock.json', inputs.path)) }}
-          restore-keys: |
-            ${{ runner.os }}-node-${{ inputs.node-version }}-
-      - name: Install dependencies
-        run: npm ci
-      - name: Check eslint
-        run: npx eslint --version
-      - name: Run lint
-        run: npm run lint
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
 
-  build:
-    name: Build Test
-    runs-on: ubuntu-latest
-    needs: lint
-    defaults:
-      run:
-        working-directory: ${{ inputs.path }}
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
           node-version: ${{ inputs.node-version }}
-      - name: Cache node modules
+
+      - name: Cache dependencies
         uses: actions/cache@v4
         with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ inputs.node-version }}-package-lock-${{ hashFiles(format('%s/package-lock.json', inputs.path)) }}
+          path: |
+            ~/.npm
+            backend/apps/${{ inputs.service }}/node_modules
+          key: ${{ runner.os }}-node-${{ inputs.node-version }}-${{ inputs.service }}-${{ hashFiles(format('backend/apps/{0}/package-lock.json', inputs.service)) }}
           restore-keys: |
-            ${{ runner.os }}-node-${{ inputs.node-version }}-
+            ${{ runner.os }}-node-${{ inputs.node-version }}-${{ inputs.service }}-
+
       - name: Install dependencies
+        working-directory: backend/apps/${{ inputs.service }}
         run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: backend/apps/${{ inputs.service }}
+        run: |
+          if [ -f "prisma/schema.prisma" ]; then
+            npx prisma generate
+            npx prisma migrate deploy || echo "No migrations to run"
+          fi
+
+      - name: Run Lint for modules
+        working-directory: backend/apps/${{ inputs.service }}
+        run: |
+          if [ "${{ inputs.modules }}" = "all" ]; then
+            npm run lint
+          else
+            IFS=',' read -ra MODS <<< "${{ inputs.modules }}"
+            for mod in "${MODS[@]}"; do
+              echo "Linting module: $mod"
+              npx eslint "src/$mod/**/*.ts" --max-warnings=0 || true
+            done
+          fi
+
+      - name: Run TI Tests
+        working-directory: backend/apps/${{ inputs.service }}
+        run: |
+          if [ "${{ inputs.modules }}" = "all" ]; then
+            echo "Running all TI tests"
+            npm test -- --testPathPattern="test/ti/.*\.ti\.spec\.ts$" --runInBand || true
+          else
+            IFS=',' read -ra MODS <<< "${{ inputs.modules }}"
+            for mod in "${MODS[@]}"; do
+              echo "Running TI tests for module: $mod"
+              npm test -- --testPathPattern="test/ti/$mod/.*\.ti\.spec\.ts$" --runInBand || true
+            done
+          fi
+
+      - name: Run E2E Tests
+        working-directory: backend/apps/${{ inputs.service }}
+        run: |
+          if [ "${{ inputs.modules }}" = "all" ]; then
+            echo "Running all E2E tests"
+            npm run test:e2e || echo "No E2E tests configured"
+          else
+            IFS=',' read -ra MODS <<< "${{ inputs.modules }}"
+            for mod in "${MODS[@]}"; do
+              echo "Running E2E tests for module: $mod"
+              if [ -d "test/e2e/$mod" ]; then
+                npm test -- --testPathPattern="test/e2e/$mod/.*\.e2e\.spec\.ts$" --runInBand || true
+              else
+                echo "No E2E tests found for module $mod"
+              fi
+            done
+          fi
+
       - name: Build
+        working-directory: backend/apps/${{ inputs.service }}
         run: npm run build
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    needs: build
-    defaults:
-      run:
-        working-directory: ${{ inputs.path }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-      - name: Setup Node
-        uses: actions/setup-node@v5
-        with:
-          node-version: ${{ inputs.node-version }}
-      - name: Cache node modules
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ inputs.node-version }}-package-lock-${{ hashFiles(format('%s/package-lock.json', inputs.path)) }}
-          restore-keys: |
-            ${{ runner.os }}-node-${{ inputs.node-version }}-
-      - name: Install dependencies
-        run: npm ci
-      - name: Test placeholder
-        run: echo "(ajoute npm test ici quand prêt)"

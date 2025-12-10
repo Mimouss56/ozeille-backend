@@ -1,0 +1,103 @@
+name: PR Module Tests
+
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - "backend/apps/**"
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  detect-changes:
+    name: Detect Changed Modules
+    runs-on: ubuntu-latest
+    outputs:
+      services-matrix: ${{ steps.detect.outputs.services-matrix }}
+      has-changes: ${{ steps.detect.outputs.has-changes }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed services and modules
+        id: detect
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Fetch develop branch for comparison
+          git fetch origin develop --no-tags
+
+          # Get changed files
+          CHANGED_FILES=$(git diff --name-only origin/develop...HEAD | grep "^backend/apps/" || true)
+
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No changes in backend/apps"
+            echo "has-changes=false" >> $GITHUB_OUTPUT
+            echo "services-matrix={\"include\":[]}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          # Build services and modules map
+          declare -A SERVICE_MODULES
+
+          while IFS= read -r file; do
+            # Match: backend/apps/<service>/src/<module>/...
+            if [[ $file =~ ^backend/apps/([^/]+)/src/([^/]+)/ ]]; then
+              service="${BASH_REMATCH[1]}"
+              module="${BASH_REMATCH[2]}"
+              
+              # Add module to service's list (unique)
+              if [ -z "${SERVICE_MODULES[$service]:-}" ]; then
+                SERVICE_MODULES[$service]="$module"
+              else
+                # Check if module already in list
+                if ! echo "${SERVICE_MODULES[$service]}" | grep -qw "$module"; then
+                  SERVICE_MODULES[$service]="${SERVICE_MODULES[$service]},$module"
+                fi
+              fi
+            # If changes outside src/<module> (config, tests, etc.), test all modules
+            elif [[ $file =~ ^backend/apps/([^/]+)/ ]]; then
+              service="${BASH_REMATCH[1]}"
+              SERVICE_MODULES[$service]="all"
+            fi
+          done <<< "$CHANGED_FILES"
+
+          # Build JSON matrix
+          MATRIX_ITEMS=()
+          for service in "${!SERVICE_MODULES[@]}"; do
+            modules="${SERVICE_MODULES[$service]}"
+            MATRIX_ITEMS+=("{\"service\":\"$service\",\"modules\":\"$modules\"}")
+          done
+
+          if [ ${#MATRIX_ITEMS[@]} -eq 0 ]; then
+            echo "has-changes=false" >> $GITHUB_OUTPUT
+            echo "services-matrix={\"include\":[]}" >> $GITHUB_OUTPUT
+          else
+            echo "has-changes=true" >> $GITHUB_OUTPUT
+            MATRIX_JSON="{\"include\":[$(IFS=,; echo "${MATRIX_ITEMS[*]}")]}"
+            echo "services-matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
+            echo "Generated matrix: $MATRIX_JSON"
+          fi
+
+  test-modules:
+    name: Test ${{ matrix.service }} (${{ matrix.modules }})
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has-changes == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.detect-changes.outputs.services-matrix) }}
+    uses: ./.github/workflows/ci-common.yml
+    with:
+      service: ${{ matrix.service }}
+      modules: ${{ matrix.modules }}
+      node-version: "24"
+    secrets: inherit
