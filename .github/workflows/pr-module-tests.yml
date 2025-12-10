@@ -37,16 +37,33 @@ jobs:
 
           # Get all changed files
           ALL_CHANGED_FILES=$(git diff --name-only origin/develop...HEAD || true)
-          
+
           echo "All changed files:"
           echo "$ALL_CHANGED_FILES"
 
-          # Check if workflow files changed - if yes, test all services
+          # Check if workflow files changed - if yes, detect all available services
           WORKFLOW_CHANGED=$(echo "$ALL_CHANGED_FILES" | grep -E "^\.github/workflows/(pr-module-tests|ci-common)\.yml$" || true)
-          
+
           if [ -n "$WORKFLOW_CHANGED" ]; then
-            echo "Workflow files changed - testing all services"
-            MATRIX_JSON='{"include":[{"service":"users-service","modules":"all"},{"service":"transactions-service","modules":"all"}]}'
+            echo "Workflow files changed - testing all available services"
+            
+            # Detect available services dynamically
+            MATRIX_ITEMS=()
+            for service_dir in backend/apps/*/; do
+              if [ -d "$service_dir" ] && [ -f "$service_dir/package.json" ]; then
+                service=$(basename "$service_dir")
+                MATRIX_ITEMS+=("{\"service\":\"$service\",\"modules\":\"all\"}")
+              fi
+            done
+            
+            if [ ${#MATRIX_ITEMS[@]} -eq 0 ]; then
+              echo "No services found"
+              echo "has-changes=false" >> $GITHUB_OUTPUT
+              echo "services-matrix={\"include\":[]}" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            
+            MATRIX_JSON="{\"include\":[$(IFS=,; echo "${MATRIX_ITEMS[*]}")]}"
             echo "has-changes=true" >> $GITHUB_OUTPUT
             echo "services-matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
             echo "Generated matrix: $MATRIX_JSON"
