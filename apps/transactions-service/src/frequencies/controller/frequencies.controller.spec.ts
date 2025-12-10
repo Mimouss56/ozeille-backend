@@ -1,7 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 
+import { FrequenciesService } from "../services/frequencies.service";
 import { FrequenciesController } from "./frequencies.controller";
-import { FrequenciesService } from "./frequencies.service";
 
 describe("FrequenciesController", () => {
   let controller: FrequenciesController;

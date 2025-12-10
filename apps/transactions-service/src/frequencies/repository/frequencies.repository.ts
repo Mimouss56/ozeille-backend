@@ -32,7 +32,7 @@ export class FrequenciesRepository {
     });
   }
 
-  async remove(id: string): Promise<Frequency | null> {
+  async remove(id: string): Promise<Frequency> {
     return this.prisma.frequency.delete({
       where: {
         id,
