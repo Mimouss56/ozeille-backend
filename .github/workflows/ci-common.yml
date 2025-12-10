@@ -76,47 +76,36 @@ jobs:
       - name: Run Lint for modules
         working-directory: apps/${{ inputs.service }}
         run: |
-          if [ "${{ inputs.modules }}" = "all" ]; then
-            npm run lint
-          else
-            IFS=',' read -ra MODS <<< "${{ inputs.modules }}"
-            for mod in "${MODS[@]}"; do
-              echo "Linting module: $mod"
-              npx eslint "src/$mod/**/*.ts" --max-warnings=0 || true
-            done
-          fi
+          IFS=',' read -ra MODS <<< "${{ inputs.modules }}"
+          for mod in "${MODS[@]}"; do
+            echo "::group::Linting module: $mod"
+            npx eslint "src/$mod/**/*.ts" --max-warnings=0 || true
+            echo "::endgroup::"
+          done
 
-      - name: Run TI Tests
+      - name: Run TI Tests sequentially
         working-directory: apps/${{ inputs.service }}
         run: |
-          if [ "${{ inputs.modules }}" = "all" ]; then
-            echo "Running all TI tests"
-            npm run test:ti || true
-          else
-            IFS=',' read -ra MODS <<< "${{ inputs.modules }}"
-            for mod in "${MODS[@]}"; do
-              echo "Running TI tests for module: $mod"
-              MODULE=$mod npm run test:ti:module || true
-            done
-          fi
+          IFS=',' read -ra MODS <<< "${{ inputs.modules }}"
+          for mod in "${MODS[@]}"; do
+            echo "::group::Running TI tests for module: $mod"
+            MODULE=$mod npm run test:ti:module || echo "⚠️ TI tests failed for $mod"
+            echo "::endgroup::"
+          done
 
-      - name: Run E2E Tests
+      - name: Run E2E Tests sequentially
         working-directory: apps/${{ inputs.service }}
         run: |
-          if [ "${{ inputs.modules }}" = "all" ]; then
-            echo "Running all E2E tests"
-            npm run test:e2e || echo "No E2E tests configured"
-          else
-            IFS=',' read -ra MODS <<< "${{ inputs.modules }}"
-            for mod in "${MODS[@]}"; do
-              echo "Running E2E tests for module: $mod"
-              if [ -d "test/e2e/$mod" ]; then
-                MODULE=$mod npm run test:e2e:module || true
-              else
-                echo "No E2E tests found for module $mod"
-              fi
-            done
-          fi
+          IFS=',' read -ra MODS <<< "${{ inputs.modules }}"
+          for mod in "${MODS[@]}"; do
+            if [ -d "test/e2e/$mod" ]; then
+              echo "::group::Running E2E tests for module: $mod"
+              MODULE=$mod npm run test:e2e:module || echo "⚠️ E2E tests failed for $mod"
+              echo "::endgroup::"
+            else
+              echo "ℹ️ No E2E tests found for module $mod"
+            fi
+          done
 
       - name: Build
         working-directory: apps/${{ inputs.service }}
