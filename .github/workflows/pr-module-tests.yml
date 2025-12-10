@@ -5,6 +5,8 @@ on:
     branches: [develop]
     paths:
       - "backend/apps/**"
+      - ".github/workflows/pr-module-tests.yml"
+      - ".github/workflows/ci-common.yml"
 
 permissions:
   contents: read
