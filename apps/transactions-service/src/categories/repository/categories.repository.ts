@@ -16,13 +16,13 @@ export class CategoriesRepository {
   async create(data: CreateCategoryRequest): Promise<Category> {
     const { budgetId, ...rest } = data;
 
-    return this.prisma.category.create({ 
-        data: {
-            ...rest,
-            budget: {
-                connect: { id: data.budgetId },
-            }, 
-        }, 
+    return this.prisma.category.create({
+      data: {
+        ...rest,
+        budget: {
+          connect: { id: budgetId },
+        },
+      },
     });
   }
 
@@ -30,10 +30,10 @@ export class CategoriesRepository {
     return this.prisma.category.findUnique({ where: { id } });
   }
 
-  updateOne(id: string, data: UpdateCategoryRequest): Promise<Category | null> {
-    return this.prisma.category.update({ 
-        where: { id }, 
-        data: data
+  updateOne(id: string, data: UpdateCategoryRequest): Promise<Category> {
+    return this.prisma.category.update({
+      where: { id },
+      data: data,
     });
   }
 
