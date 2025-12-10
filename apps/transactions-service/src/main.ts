@@ -11,15 +11,40 @@ async function bootstrap() {
 
   app.useGlobalFilters(new ZodValidationExceptionFilter(), new PrismaExceptionFilter());
 
-  const config = new DocumentBuilder()
-    .setTitle("LaPince Api NestJs")
-    .setDescription("LaPince API description")
-    .setVersion("1.0")
-    .build();
-  const documentFactory = () => SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup("api-docs", app, cleanupOpenApiDoc(documentFactory()));
+  const port = process.env.PORT || 3000;
+  const isProduction = process.env.NODE_ENV === 'production';
+  const env = process.env.NODE_ENV || 'development';
+  const version = '1.0.0';
 
-  await app.listen(process.env.PORT ?? 3000);
+  const docTitle = `LaPince API (${env.toUpperCase()})`;
+  const docVersion = env === 'production' ? version : `${version}-${env}`;
+  const docDescription = 'API de gestion budgétaire "LaPince'
+
+  const builder = new DocumentBuilder()
+    .setTitle(docTitle)
+    .setDescription(docDescription)
+    .setVersion(docVersion)
+    .setContact('Support LaPince', '','');
+    
+    if (isProduction) { 
+      const prodUrl = process.env.PROD_API_URL || '';
+      builder.addServer(prodUrl, 'Prod Environment');
+    } 
+    else {
+      builder.addServer(`http://localhost:${port}`, 'Dev Environment');
+    }
+
+    const config = builder.build();
+  
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup("api-docs", app, cleanupOpenApiDoc(document), {
+    customSiteTitle: "LaPince API Docs",
+    swaggerOptions: {
+      filter: true,
+    }
+  });
+
+  await app.listen(port);
 }
 
 bootstrap();
