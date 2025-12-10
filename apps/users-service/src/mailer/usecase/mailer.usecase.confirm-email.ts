@@ -36,9 +36,8 @@ export class MailerUsecaseConfirmEmail {
 
     // build confirmation link — assume FRONTEND or API_URL env var, fallback to relative path
     const baseUrl = process.env.FRONTEND_URL ?? process.env.API_URL ?? "";
-    console.log("baseUrl", baseUrl);
 
-    const path = "/api/auth/confirm";
+    const path = "/confirm-email";
     const href = baseUrl ? `${baseUrl.replace(/\/$/, "")}${path}?token=${tokenHash}` : `${path}?token=${tokenHash}`;
 
     const html = `
