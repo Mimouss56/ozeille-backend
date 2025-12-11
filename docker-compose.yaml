@@ -72,3 +72,4 @@ services:
 
 volumes:
   user-db-data:
+  transaction-db-data:
