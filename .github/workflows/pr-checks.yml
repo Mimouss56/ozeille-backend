@@ -80,6 +80,25 @@ jobs:
             echo "- $svc : ${SERVICE_MODULES[$svc]}"
           done
 
+          # Start PostgreSQL once if transactions-service needs testing
+          POSTGRES_STARTED=0
+          if [[ -v SERVICE_MODULES["transactions-service"] ]]; then
+            echo "Starting PostgreSQL for transactions-service tests"
+            docker run --name postgres_test_ci \
+              -e POSTGRES_PASSWORD=postgres \
+              -e POSTGRES_USER=postgres \
+              -e POSTGRES_DB=testdb \
+              -p 5432:5432 \
+              -d postgres:15-alpine
+            
+            until docker exec postgres_test_ci pg_isready -U postgres >/dev/null 2>&1; do
+              echo "Waiting for Postgres..."
+              sleep 1
+            done
+            POSTGRES_STARTED=1
+            echo "PostgreSQL ready"
+          fi
+
           # Run checks per service/module
           for svc in "${!SERVICE_MODULES[@]}"; do
             mods=${SERVICE_MODULES[$svc]}
@@ -87,32 +106,26 @@ jobs:
             echo "\n--- Running checks for service: $svc (modules: $mods) ---"
               if [ -f "$svcdir/package.json" ]; then
                 (cd "$svcdir" && npm ci)
-                # If transactions-service we may need a Postgres for tests
+                # Check if this service needs DB
                 NEED_DB=0
                 if [ "$svc" = "transactions-service" ]; then
                   NEED_DB=1
                 fi
 
+                # Setup Prisma if DB is available
+                if [ "$NEED_DB" -eq 1 ] && [ "$POSTGRES_STARTED" -eq 1 ]; then
+                  export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/testdb"
+                  if [ -f "$svcdir/prisma/schema.prisma" ] || [ -d "$svcdir/prisma/migrations" ]; then
+                    (cd "$svcdir" && npx prisma generate) || true
+                    (cd "$svcdir" && npx prisma migrate deploy --schema=prisma/schema.prisma) || true
+                  fi
+                fi
+
                 # if __ALL__ present, run full lint/test
                 if echo "$mods" | grep -q "__ALL__"; then
                   (cd "$svcdir" && npm run lint --if-present) || true
-                  if [ "$NEED_DB" -eq 1 ]; then
-                    echo "Starting Postgres for $svc"
-                    docker run --name pg_${svc}_ci -e POSTGRES_PASSWORD=postgres -e POSTGRES_USER=postgres -e POSTGRES_DB=postgres -d postgres:15-alpine
-                    # wait for Postgres to be ready
-                    until docker exec pg_${svc}_ci pg_isready -U postgres >/dev/null 2>&1; do
-                      echo "Waiting for Postgres..."
-                      sleep 1
-                    done
-                    export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres"
-                    # Prisma generate / migrate if applicable
-                    if [ -f "$svcdir/prisma/schema.prisma" ] || [ -d "$svcdir/prisma/migrations" ]; then
-                      (cd "$svcdir" && npx prisma generate) || true
-                      (cd "$svcdir" && npx prisma migrate deploy --schema=prisma/schema.prisma) || true
-                    fi
+                  if [ "$NEED_DB" -eq 1 ] && [ "$POSTGRES_STARTED" -eq 1 ]; then
                     (cd "$svcdir" && env DATABASE_URL="$DATABASE_URL" npm test --if-present) || true
-                    # cleanup
-                    docker rm -f pg_${svc}_ci || true
                   else
                     (cd "$svcdir" && npm test --if-present) || true
                   fi
@@ -122,22 +135,10 @@ jobs:
                     echo "Running lint for module: $mod"
                     (cd "$svcdir" && npx eslint "src/$mod/**" --ext .ts) || true
                     echo "Running tests for module: $mod"
-                    if [ "$svc" = "transactions-service" ]; then
-                      echo "Starting Postgres for module tests in $svc"
-                      docker run --name pg_${svc}_ci -e POSTGRES_PASSWORD=postgres -e POSTGRES_USER=postgres -e POSTGRES_DB=postgres -d postgres:15-alpine
-                      until docker exec pg_${svc}_ci pg_isready -U postgres >/dev/null 2>&1; do
-                        echo "Waiting for Postgres..."
-                        sleep 1
-                      done
-                      export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres"
-                      if [ -f "$svcdir/prisma/schema.prisma" ] || [ -d "$svcdir/prisma/migrations" ]; then
-                        (cd "$svcdir" && npx prisma generate) || true
-                        (cd "$svcdir" && npx prisma migrate deploy --schema=prisma/schema.prisma) || true
-                      fi
-                      (cd "$svcdir" && env DATABASE_URL="$DATABASE_URL" npm test -- --testPathPattern="src/$mod") || true
-                      docker rm -f pg_${svc}_ci || true
+                    if [ "$NEED_DB" -eq 1 ] && [ "$POSTGRES_STARTED" -eq 1 ]; then
+                      (cd "$svcdir" && env DATABASE_URL="$DATABASE_URL" npm test -- --testPathPattern="$mod") || true
                     else
-                      (cd "$svcdir" && npm test -- --testPathPattern="src/$mod") || true
+                      (cd "$svcdir" && npm test -- --testPathPattern="$mod") || true
                     fi
                   done
                 fi
@@ -145,6 +146,12 @@ jobs:
                 echo "No package.json for $svc — skipping npm steps"
               fi
           done
+
+          # Cleanup PostgreSQL
+          if [ "$POSTGRES_STARTED" -eq 1 ]; then
+            echo "Cleaning up PostgreSQL container"
+            docker rm -f postgres_test_ci || true
+          fi
 
       - name: Run affected tests
         run: |
