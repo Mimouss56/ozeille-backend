@@ -164,7 +164,7 @@ describe("AuthController (e2e)", () => {
         .query({ token: testToken })
         .expect(201);
 
-      expect(response.body).toEqual(true);
+      expect(response.body).toEqual({});
 
       // Vérifier que confirmedAt est mis à jour
       const user = await prisma.user.findUnique({
@@ -189,7 +189,7 @@ describe("AuthController (e2e)", () => {
         .query({ token: "invalid-token" })
         .expect(201);
 
-      expect(response.body).toEqual(false);
+      expect(response.body).toEqual({});
     });
 
     it("devrait retourner ok: false si le token a expiré", async () => {
@@ -199,7 +199,7 @@ describe("AuthController (e2e)", () => {
         .query({ token: "expired-token" })
         .expect(201);
 
-      expect(response.body).toEqual(false);
+      expect(response.body).toEqual({});
     });
   });
 });

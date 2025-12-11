@@ -12,17 +12,23 @@ export class AuthUsecaseVerifyConfirmation {
 
   async verify(token: string): Promise<boolean> {
     const redisKey = `confirm-email-token:${token}`;
-    const resultRedis = await this.redis.get(redisKey);
 
-    if (!resultRedis) return false;
+    // Récupération du token depuis Redis
+    const email = await this.redis.get(redisKey);
 
-    try {
-      await this.prisma.user.update({ where: { email: resultRedis }, data: { confirmedAt: new Date() } });
-      await this.redis.del(redisKey);
-    } catch (error) {
-      throw new Error("Error updating user confirmation status" + error);
+    if (!email) {
+      this.logger.warn(`Token not found or expired: ${token}`);
+      return false;
     }
+    try {
+      await this.prisma.user.update({ where: { email }, data: { confirmedAt: new Date() } });
+      await this.redis.del(redisKey);
 
-    return true;
+      this.logger.log(`Email confirmed successfully for: ${email}`);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to confirm email for ${email}:`, error);
+      return false;
+    }
   }
 }
