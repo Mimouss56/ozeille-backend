@@ -16,13 +16,12 @@ export class AuthUsecaseVerifyConfirmation {
 
     if (!resultRedis) return false;
 
-    // update user confirmedAt
-    //via usecase updateUser
-    //TODO: @mlp
-    // await this.prisma.user.update({ where: { email: resultRedis }, data: { confirmedAt: new Date() } });
-
-    // delete redis key
-    await this.redis.del(redisKey);
+    try {
+      await this.prisma.user.update({ where: { email: resultRedis }, data: { confirmedAt: new Date() } });
+      await this.redis.del(redisKey);
+    } catch (error) {
+      throw new Error("Error updating user confirmation status" + error);
+    }
 
     return true;
   }
