@@ -29,32 +29,32 @@ jobs:
 
       - name: Install dependencies (transactions-service)
         run: |
-          cd backend/apps/transactions-service
+          cd apps/transactions-service
           npm ci
 
       - name: Install dependencies (users-service)
         run: |
-          cd backend/apps/users-service
+          cd apps/users-service
           npm ci
 
       - name: Lint (transactions-service)
         run: |
-          cd backend/apps/transactions-service
+          cd apps/transactions-service
           npm run lint --if-present
 
       - name: Lint (users-service)
         run: |
-          cd backend/apps/users-service
+          cd apps/users-service
           npm run lint --if-present
 
       - name: Tests (transactions-service)
         run: |
-          cd backend/apps/transactions-service
+          cd apps/transactions-service
           npm test --if-present
 
       - name: Tests (users-service)
         run: |
-          cd backend/apps/users-service
+          cd apps/users-service
           npm test --if-present
 
       - name: SonarQube Full Scan
@@ -127,7 +127,6 @@ jobs:
       - name: Semantic Release
         id: semantic
         run: |
-          cd backend
           NPM_TOKEN='${{ secrets.NPM_TOKEN }}'
           if [ -z "$NPM_TOKEN" ]; then
             echo "NPM_TOKEN not set - skipping semantic-release"
