@@ -8,6 +8,8 @@ export const createTransactionSchema = transactionSchema
     amount: true,
     label: true,
     dueAt: true,
+    categoryId: true,
+    frequencyId: true,
   })
   .required();
 
