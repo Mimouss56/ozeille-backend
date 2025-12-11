@@ -11,6 +11,8 @@ export const transactionSchema = z.object({
   pointedAt: z.iso.datetime().optional(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
+  categoryId: z.uuid().nullable().optional().describe("Category ID linked to this transaction"),
+  frequencyId: z.uuid().nullable().optional().describe("Frequency ID linked to this transaction"),
 });
 
 export type TransactionDto = z.infer<typeof transactionSchema>;

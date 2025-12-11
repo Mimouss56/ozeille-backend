@@ -9,6 +9,8 @@ export const updateTransactionSchema = transactionSchema
     label: true,
     dueAt: true,
     pointedAt: true,
+    categoryId: true,
+    frequencyId: true,
   })
   .required();
 

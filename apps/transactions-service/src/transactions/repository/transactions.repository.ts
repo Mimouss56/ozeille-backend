@@ -29,6 +29,7 @@ export class TransactionsRepository {
           dueAt: dueAt,
         },
         where: { pointedAt: isPointedAt },
+        include: { category: true },
       }),
       this.prisma.transaction.count({
         orderBy: {
@@ -50,15 +51,38 @@ export class TransactionsRepository {
   }
 
   getById(id: string): Promise<Transaction | null> {
-    return this.prisma.transaction.findUnique({ where: { id } });
+    return this.prisma.transaction.findUnique({
+      where: { id },
+      include: { category: true },
+    });
   }
 
   async create(transaction: CreateTransactionRequest): Promise<Transaction> {
-    return this.prisma.transaction.create({ data: transaction });
+    const { categoryId, frequencyId, ...rest } = transaction;
+
+    return this.prisma.transaction.create({
+      data: {
+        ...rest,
+        category: categoryId ? { connect: { id: categoryId } } : undefined,
+        frequency: frequencyId ? { connect: { id: frequencyId } } : undefined,
+      },
+      include: { category: true, frequency: true },
+    });
   }
 
   updateOne(id: string, transaction: UpdateTransactionRequest): Promise<Transaction> {
-    return this.prisma.transaction.update({ where: { id }, data: transaction });
+    const { categoryId, frequencyId, ...rest } = transaction;
+
+    return this.prisma.transaction.update({
+      where: { id },
+      data: {
+        ...rest,
+        ...(categoryId !== undefined && {
+          category: categoryId ? { connect: { id: categoryId } } : { disconnect: true },
+        }),
+      },
+      include: { category: true },
+    });
   }
 
   remove(id: string): Promise<Transaction> {
