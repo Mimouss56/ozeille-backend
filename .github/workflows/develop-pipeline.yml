@@ -14,7 +14,7 @@ jobs:
   full-audit:
     runs-on: ubuntu-latest
     outputs:
-      dto-changed: ${{ steps.check-dto.outputs.dto-changed }}
+      # dto-changed: ${{ steps.check-dto.outputs.dto-changed }}
       tag-pushed: ${{ steps.semantic.outputs.tag-pushed }}
     steps:
       - name: Checkout
@@ -26,27 +26,60 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: "npm"
 
-      - name: Install
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('apps/*/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: Start PostgreSQL for tests
         run: |
-          cd backend
+          docker run --name postgres_ci \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_USER=postgres \
+            -e POSTGRES_DB=testdb \
+            -p 5432:5432 \
+            -d postgres:15-alpine
+          sleep 5
+
+      - name: Install dependencies (transactions-service)
+        run: |
+          cd apps/transactions-service
           npm ci
 
-      - name: Lint
+      - name: Install dependencies (users-service)
         run: |
-          cd backend
+          cd apps/users-service
+          npm ci
+
+      - name: Lint (transactions-service)
+        run: |
+          cd apps/transactions-service
           npm run lint --if-present
 
-      - name: Tests (all services)
+      - name: Lint (users-service)
         run: |
-          # Run tests for all services
-          for service in backend/apps/*; do
-            if [ -d "$service" ] && [ -f "$service/package.json" ]; then
-              echo "Testing service: $(basename $service)"
-              (cd "$service" && npm ci && npm test --if-present) || true
-            fi
-          done
+          cd apps/users-service
+          npm run lint --if-present
+
+      - name: Tests (transactions-service)
+        run: |
+          cd apps/transactions-service
+          npx prisma generate
+          npm test -- --passWithNoTests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
+
+      - name: Tests (users-service)
+        run: |
+          cd apps/users-service
+          npx prisma generate
+          npm test -- --passWithNoTests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
 
       - name: SonarQube Full Scan
         run: |
@@ -57,55 +90,55 @@ jobs:
           fi
           echo "Run Sonar full scan (placeholder)"
 
-      - name: Check DTO changes
-        id: check-dto
-        run: |
-          # Detect DTO changes under backend/apps/<service>/src/<module>/dto/*.dto.ts
-          CHANGED=$(git diff --name-only origin/main...HEAD | grep -E "(^backend/apps/.*/src/.*/dto/.*\.dto\.ts$)" || true)
-          echo "changed=$CHANGED"
-          if [ -n "$CHANGED" ]; then
-            echo "dto-changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "dto-changed=false" >> $GITHUB_OUTPUT
-          fi
+      # - name: Check DTO changes
+      #   id: check-dto
+      #   run: |
+      #     # Detect DTO changes under backend/src/**/<module>/dto/*.dto.ts
+      #     CHANGED=$(git diff --name-only origin/main...HEAD | grep -E "(^backend/src/.*/dto/.*\.dto\.ts$)" || true)
+      #     echo "changed=$CHANGED"
+      #     if [ -n "$CHANGED" ]; then
+      #       echo "dto-changed=true" >> $GITHUB_OUTPUT
+      #     else
+      #       echo "dto-changed=false" >> $GITHUB_OUTPUT
+      #     fi
 
-      - name: Build & Publish DTO package
-        if: steps.check-dto.outputs.dto-changed == 'true'
-        run: |
-          echo "DTO changes detected — attempting build & publish"
-          cd backend || exit 0
-          # Build DTOs if a build script exists
-          if npm run | grep -q "build:dtos"; then
-            npm run build:dtos || true
-          fi
+      # - name: Build & Publish DTO package
+      #   if: steps.check-dto.outputs.dto-changed == 'true'
+      #   run: |
+      #     echo "DTO changes detected — attempting build & publish"
+      #     cd backend || exit 0
+      #     # Build DTOs if a build script exists
+      #     if npm run | grep -q "build:dtos"; then
+      #       npm run build:dtos || true
+      #     fi
 
-          # Publish to npm if NPM_TOKEN is set
-          NPM_TOKEN='${{ secrets.NPM_TOKEN }}'
-          if [ -z "$NPM_TOKEN" ]; then
-            echo "NPM_TOKEN not set - skipping npm publish of DTO package"
-          else
-            echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
-            # If package folder exists, try to publish (adjust path if needed)
-            if [ -d "packages/shared-dtos" ]; then
-              cd packages/shared-dtos
-              npm publish --access restricted || true
-            else
-              echo "No packages/shared-dtos folder found - implement publish steps if needed"
-            fi
-          fi
+      #     # Publish to npm if NPM_TOKEN is set
+      #     NPM_TOKEN='${{ secrets.NPM_TOKEN }}'
+      #     if [ -z "$NPM_TOKEN" ]; then
+      #       echo "NPM_TOKEN not set - skipping npm publish of DTO package"
+      #     else
+      #       echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
+      #       # If package folder exists, try to publish (adjust path if needed)
+      #       if [ -d "packages/shared-dtos" ]; then
+      #         cd packages/shared-dtos
+      #         npm publish --access restricted || true
+      #       else
+      #         echo "No packages/shared-dtos folder found - implement publish steps if needed"
+      #       fi
+      #     fi
 
-      - name: Update dependent package.json
-        if: steps.check-dto.outputs.dto-changed == 'true'
-        run: |
-          echo "Updating dependents to latest shared-dtos (manual or script required)"
-          # If you have a script to update dependent packages, run it here.
-          # Example placeholder (implement as needed):
-          # ./scripts/update-dto-dependents.sh
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git config user.name "github-actions[bot]"
-          git add package.json package-lock.json || true
-          git commit -m "chore: update shared-dtos dependency [skip ci]" || true
-          git push origin HEAD:develop || true
+      # - name: Update dependent package.json
+      #   if: steps.check-dto.outputs.dto-changed == 'true'
+      #   run: |
+      #     echo "Updating dependents to latest shared-dtos (manual or script required)"
+      #     # If you have a script to update dependent packages, run it here.
+      #     # Example placeholder (implement as needed):
+      #     # ./scripts/update-dto-dependents.sh
+      #     git config user.email "github-actions[bot]@users.noreply.github.com"
+      #     git config user.name "github-actions[bot]"
+      #     git add package.json package-lock.json || true
+      #     git commit -m "chore: update shared-dtos dependency [skip ci]" || true
+      #     git push origin HEAD:develop || true
 
       - name: Docker Build & Push
         env:
@@ -118,21 +151,23 @@ jobs:
       - name: Semantic Release
         id: semantic
         run: |
-          cd backend
           NPM_TOKEN='${{ secrets.NPM_TOKEN }}'
           if [ -z "$NPM_TOKEN" ]; then
             echo "NPM_TOKEN not set - skipping semantic-release"
             echo "tag-pushed=false" >> $GITHUB_OUTPUT
           else
             echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
-            npx semantic-release || true
-            echo "tag-pushed=false" >> $GITHUB_OUTPUT
+            if npx semantic-release; then
+              echo "tag-pushed=true" >> $GITHUB_OUTPUT
+            else
+              echo "tag-pushed=false" >> $GITHUB_OUTPUT
+            fi
           fi
 
   merge-to-main:
     needs: full-audit
     runs-on: ubuntu-latest
-    if: needs.full-audit.outputs.tag-pushed == 'true' || needs.full-audit.outputs.tag-pushed == 'false'
+    if: needs.full-audit.outputs.tag-pushed == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v5

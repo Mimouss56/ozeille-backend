@@ -1,31 +1,29 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpStatus } from "@nestjs/common";
-import { Prisma } from "src/generated/prisma/client";
 import { Response } from "express";
+import { Prisma } from "src/generated/prisma/client";
 
 @Catch(Prisma.PrismaClientKnownRequestError)
 export class PrismaExceptionFilter implements ExceptionFilter {
-  catch(exception: Prisma.PrismaClientKnownRequestError, host: ArgumentsHost) {
+  catch(exception: Prisma.PrismaClientKnownRequestError, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    
+
     //erreur 500
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message = 'Internal server error';
+    let message = "Internal server error";
 
     switch (exception.code) {
-      case 'P2002': // Containtes Unique
+      case "P2002": // Containtes Unique
         status = HttpStatus.CONFLICT;
         const target = exception.meta?.target;
-        message = target 
-          ? `Unique constraint violation on field: ${target}` 
-          : 'Unique constraint violation';
+        message = target ? `Unique constraint violation on field: ${target}` : "Unique constraint violation";
         break;
 
-      case 'P2025':
+      case "P2025":
         status = HttpStatus.NOT_FOUND;
-        message = 'Not found';
+        message = "Not found";
         break;
-      
+
       default:
         message = `${exception.message}`;
         break;

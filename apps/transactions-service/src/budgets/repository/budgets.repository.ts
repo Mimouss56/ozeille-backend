@@ -10,7 +10,10 @@ export class BudgetsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async getAll(): Promise<Budget[]> {
-    return this.prisma.budget.findMany();
+    return this.prisma.budget.findMany({
+      include: { categories: true },
+      orderBy: { label: 'asc' } // Trier par label par ordre alphabétique
+    });
   }
 
   async create(budget: CreateBudgetRequest): Promise<Budget> {
@@ -18,7 +21,10 @@ export class BudgetsRepository {
   }
 
   getById(id: string): Promise<Budget | null> {
-    return this.prisma.budget.findUnique({ where: { id } });
+    return this.prisma.budget.findUnique({ 
+      where: { id },
+      include: { categories: true } 
+    });
   }
 
   updateOne(id: string, budget: UpdateBudgetRequest): Promise<Budget> {
