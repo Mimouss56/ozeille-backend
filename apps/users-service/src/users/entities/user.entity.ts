@@ -1,7 +1,6 @@
-export class User {
+export class UserEntity {
   id: string;
   email: string;
-  password: string;
   firstName: string;
   lastName: string;
   createdAt: Date;
