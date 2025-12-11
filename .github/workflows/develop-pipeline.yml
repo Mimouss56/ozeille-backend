@@ -27,20 +27,36 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
+          cache-dependency-path: "backend/apps/*/package-lock.json"
 
-      - name: Install
+      - name: Install dependencies (transactions-service)
         run: |
-          cd backend
+          cd backend/apps/transactions-service
           npm ci
 
-      - name: Lint
+      - name: Install dependencies (users-service)
         run: |
-          cd backend
+          cd backend/apps/users-service
+          npm ci
+
+      - name: Lint (transactions-service)
+        run: |
+          cd backend/apps/transactions-service
           npm run lint --if-present
 
-      - name: Tests (all)
+      - name: Lint (users-service)
         run: |
-          cd backend
+          cd backend/apps/users-service
+          npm run lint --if-present
+
+      - name: Tests (transactions-service)
+        run: |
+          cd backend/apps/transactions-service
+          npm test --if-present
+
+      - name: Tests (users-service)
+        run: |
+          cd backend/apps/users-service
           npm test --if-present
 
       - name: SonarQube Full Scan
