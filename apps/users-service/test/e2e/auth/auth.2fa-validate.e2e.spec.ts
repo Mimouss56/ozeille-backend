@@ -107,9 +107,6 @@ describe("POST /api/auth/2fa/validate (e2e)", () => {
       password: testUser.password,
     });
 
-    console.log("Login response status:", loginResponse.status);
-    console.log("Login response body:", loginResponse.body);
-
     expect(loginResponse.status).toBe(201);
     expect(loginResponse.body).toHaveProperty("tempToken");
 
