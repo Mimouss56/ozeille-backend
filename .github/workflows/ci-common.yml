@@ -90,7 +90,7 @@ jobs:
           for mod in "${MODS[@]}"; do
             if [ -d "test/ti/$mod" ]; then
               echo "::group::Running TI tests for module: $mod"
-              npx jest --config ./test/jest-ti-e2e.json --testPathPattern="test/ti/$mod/.*\.ti\\.spec\\.ts" --runInBand
+              npx jest --config ./test/jest-e2e.json --testPathPattern="test/ti/$mod/.*\.ti\\.spec\\.ts" --runInBand
               echo "::endgroup::"
             else
               echo "ℹ️ No TI tests found for module $mod"

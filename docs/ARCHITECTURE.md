@@ -79,7 +79,6 @@ apps/<service>/
 │   │   └── *.ti.spec.ts
 │   ├── e2e/<module>/              # Tests end-to-end
 │   │   └── *.e2e.spec.ts
-│   ├── jest-ti-e2e.json          # Config Jest TI/E2E
 │   └── jest-e2e.json             # Config Jest E2E classique
 ├── docker/
 │   ├── Dockerfile
@@ -479,7 +478,7 @@ describe('UsersController (E2E)', () => {
   }
 }
 
-// test/jest-ti-e2e.json
+// test/jest-e2e.json
 {
   "rootDir": ".",
   "moduleNameMapper": {
@@ -689,7 +688,7 @@ Quand on crée un nouveau microservice :
 - [ ] DTOs avec validation (nestjs-zod ou class-validator)
 - [ ] Exception filters globaux
 - [ ] Tests : `test/ti/` et `test/e2e/`
-- [ ] Configuration Jest (`jest-ti-e2e.json`)
+- [ ] Configuration Jest (`jest-e2e.json`)
 - [ ] Scripts npm (`test:ti`, `test:ti:module`, etc.)
 - [ ] Dockerfile et entrypoint
 - [ ] README.md spécifique au service

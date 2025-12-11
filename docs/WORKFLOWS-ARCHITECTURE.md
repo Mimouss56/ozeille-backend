@@ -165,7 +165,7 @@ backend/apps/<service>/
 ├── package.json              # Scripts npm + config Jest
 ├── tsconfig.json            # Alias TypeScript (src/*)
 ├── test/
-│   ├── jest-ti-e2e.json    # Config tests TI/E2E
+│   ├── jest-e2e.json    # Config tests TI/E2E
 │   ├── ti/<module>/        # Tests d'intégration
 │   └── e2e/<module>/       # Tests end-to-end
 ```
