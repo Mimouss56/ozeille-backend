@@ -77,7 +77,7 @@ export class TransactionsRepository {
       where: { id }, 
       data: {
         ...rest,
-        ...(!categoryId && { 
+        ...(categoryId !== undefined && { 
           category: categoryId ? { connect: { id: categoryId } } : { disconnect: true } 
         }),
       },
