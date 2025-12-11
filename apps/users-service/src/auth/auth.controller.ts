@@ -1,13 +1,22 @@
 import { BadRequestException, Body, Controller, Post, Query } from "@nestjs/common";
-import { ApiBadRequestResponse, ApiOkResponse, ApiResponse } from "@nestjs/swagger";
+import { ApiBadRequestResponse, ApiOkResponse, ApiResponse, ApiUnauthorizedResponse } from "@nestjs/swagger";
 import { ZodSerializerDto } from "nestjs-zod";
+import { AuthUsecase2FA } from "src/auth/usecases/auth.usecase.2fa";
+import { AuthUsecaseLogin } from "src/auth/usecases/auth.usecase.login";
+import { AuthUsecaseTempToken } from "src/auth/usecases/auth.usecase.temp-token";
+import { AuthUsecaseValidate2FA } from "src/auth/usecases/auth.usecase.validate-2fa";
 import { AuthUsecaseVerifyConfirmation } from "src/auth/usecases/auth.usecase.verify-confirmation";
 import { ValidationErrorResponse } from "src/common/dto/validation-error.dto";
 import { MailerUsecaseConfirmEmail } from "src/mailer/usecase/mailer.usecase.confirm-email";
+import { MailerUsecaseSend2FACode } from "src/mailer/usecase/mailer.usecase.send-2fa-code";
 import { CreateUserDto } from "src/users/dto/create-user.dto";
 import { UsersUsecaseRegister } from "src/users/usecases/users.usecase.register";
 
 import { EmailDto } from "./dto/email.dto";
+import { LoginResponseDto } from "./dto/login-response.dto";
+import { LoginDto } from "./dto/login.dto";
+import { Validate2FAResponseDto } from "./dto/validate-2fa-response.dto";
+import { Validate2FADto } from "./dto/validate-2fa.dto";
 
 @Controller("api/auth")
 export class AuthController {
@@ -15,6 +24,11 @@ export class AuthController {
     private readonly authUsecaseVerifyConfirmation: AuthUsecaseVerifyConfirmation,
     private readonly usersUsecaseRegister: UsersUsecaseRegister,
     private readonly mailerUsecaseConfirmEmail: MailerUsecaseConfirmEmail,
+    private readonly authUsecaseLogin: AuthUsecaseLogin,
+    private readonly authUsecase2FA: AuthUsecase2FA,
+    private readonly authUsecaseTempToken: AuthUsecaseTempToken,
+    private readonly authUsecaseValidate2FA: AuthUsecaseValidate2FA,
+    private readonly mailerUsecaseSend2FACode: MailerUsecaseSend2FACode,
   ) {}
 
   @Post("register/confirm")
@@ -59,5 +73,72 @@ export class AuthController {
   @ApiResponse({ status: 503, description: "Internal Server Error." })
   register(@Body() createUserDto: CreateUserDto): Promise<void> {
     return this.usersUsecaseRegister.execute(createUserDto);
+  }
+
+  @Post("login")
+  @ZodSerializerDto(LoginDto)
+  @ApiOkResponse({
+    description: "Connexion réussie. Un code 2FA a été envoyé par email et un token temporaire a été généré",
+    type: LoginResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: "Validation failed",
+    type: ValidationErrorResponse,
+  })
+  @ApiUnauthorizedResponse({
+    description: "Email ou mot de passe incorrect, ou email non confirmé",
+  })
+  async login(@Body() loginDto: LoginDto): Promise<LoginResponseDto> {
+    try {
+      // Valider les credentials
+      const { userId } = await this.authUsecaseLogin.validateCredentials(loginDto.email, loginDto.password);
+
+      // Générer et stocker le code 2FA
+      const code2FA = await this.authUsecase2FA.generateAndStore2FACode(userId);
+
+      // Générer et stocker le token temporaire
+      const tempToken = await this.authUsecaseTempToken.generateAndStoreTempToken(userId);
+
+      // Envoyer le code par email (ne pas bloquer si l'envoi échoue)
+      try {
+        await this.mailerUsecaseSend2FACode.send2FACode(loginDto.email, code2FA);
+      } catch (emailError) {
+        console.error("Failed to send 2FA code email:", emailError);
+        throw emailError;
+      }
+
+      return {
+        message: "Un code de vérification a été envoyé à votre adresse email",
+        tempToken,
+      };
+    } catch (error) {
+      console.error("Error in login:", error);
+      throw error;
+    }
+  }
+
+  @Post("2fa/validate")
+  @ZodSerializerDto(Validate2FADto)
+  @ApiOkResponse({
+    description: "Code 2FA vérifié avec succès. L'utilisateur est maintenant authentifié et reçoit ses tokens JWT.",
+    type: Validate2FAResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: "Validation failed",
+    type: ValidationErrorResponse,
+  })
+  @ApiUnauthorizedResponse({
+    description: "Token temporaire ou code de vérification invalide/expiré",
+  })
+  async validate2FA(@Body() validate2FADto: Validate2FADto): Promise<Validate2FAResponseDto> {
+    const { accessToken, refreshToken } = await this.authUsecaseValidate2FA.validate(
+      validate2FADto.tempToken,
+      validate2FADto.code,
+    );
+
+    return {
+      accessToken,
+      refreshToken,
+    };
   }
 }

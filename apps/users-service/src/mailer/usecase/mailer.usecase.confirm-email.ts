@@ -8,6 +8,8 @@ import { MailerUsecaseSendMail } from "./mailer.usecase.send-mail";
 
 @Injectable()
 export class MailerUsecaseConfirmEmail {
+  private readonly TTL = 600; // 10 minutes en secondes
+
   private readonly logger = new Logger(MailerUsecaseConfirmEmail.name);
 
   constructor(
@@ -76,7 +78,7 @@ export class MailerUsecaseConfirmEmail {
 
     // store hash with expiration (e.g., 10 minutes)
     const redisKey = `confirm-email-token:${tokenHash}`;
-    await this.redis.set(redisKey, email, "EX", 10 * 60);
+    await this.redis.setex(redisKey, this.TTL, email);
     return tokenHash;
   }
 }

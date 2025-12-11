@@ -5,4 +5,5 @@ export class UserEntity {
   lastName: string;
   createdAt: Date;
   updatedAt: Date;
+  confirmedAt?: Date | null;
 }

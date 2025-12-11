@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { User } from "src/generated/prisma/client";
 import { UserWhereUniqueInput } from "src/generated/prisma/models/User";
 import { PrismaService } from "src/prisma/prisma.service";
 
@@ -26,5 +27,9 @@ export class UserUsecaseFind {
 
   async findByEmail(email: string): Promise<UserEntity | null> {
     return this.findOne({ email });
+  }
+
+  async findByEmailWithPassword(email: string): Promise<User | null> {
+    return this.prisma.user.findUnique({ where: { email } });
   }
 }
