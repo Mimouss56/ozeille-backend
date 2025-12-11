@@ -9,7 +9,7 @@ if [ ! -d "node_modules" ]; then
   echo "Le dossier node_modules n'existe pas. Exécution de npm install..."
   npm install
   if [ $? -ne 0 ]; then
-    echo "ERREUR: pnpm install a échoué. Arrêt."
+    echo "ERREUR: npm install a échoué. Arrêt."
     exit 1
   fi
   echo "npm install terminé."

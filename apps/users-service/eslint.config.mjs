@@ -1,34 +1,35 @@
-// @ts-check
-import eslint from '@eslint/js';
-import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
-import globals from 'globals';
-import tseslint from 'typescript-eslint';
+import { FlatCompat } from "@eslint/eslintrc";
+import prettier from "eslint-plugin-prettier";
+import unusedImports from "eslint-plugin-unused-imports";
+import { globalIgnores } from "eslint/config";
+import globals from "globals";
 
-export default tseslint.config(
+const compat = new FlatCompat({ recommendedConfig: { extends: [] } });
+
+export default [
+  globalIgnores(["dist"]),
+  ...compat.extends("eslint:recommended"),
+  ...compat.extends("plugin:@typescript-eslint/recommended"),
+  ...compat.extends("plugin:prettier/recommended"),
   {
-    ignores: ['eslint.config.mjs'],
-  },
-  eslint.configs.recommended,
-  ...tseslint.configs.recommendedTypeChecked,
-  eslintPluginPrettierRecommended,
-  {
+    files: ["**/*.{ts,tsx,js,jsx}"],
+    plugins: {
+      "unused-imports": unusedImports,
+      prettier: prettier,
+    },
     languageOptions: {
-      globals: {
-        ...globals.node,
-        ...globals.jest,
-      },
-      sourceType: 'commonjs',
-      parserOptions: {
-        projectService: true,
-        tsconfigRootDir: import.meta.dirname,
-      },
+      ecmaVersion: 2020,
+      globals: globals.browser,
     },
-  },
-  {
     rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-floating-promises': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn'
+      "prettier/prettier": "error",
+      "unused-imports/no-unused-imports": "error",
+      "unused-imports/no-unused-vars": [
+        "warn",
+        { vars: "all", varsIgnorePattern: "^_", args: "after-used", argsIgnorePattern: "^_" },
+      ],
+      "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/explicit-module-boundary-types": "error",
     },
   },
-);
+];

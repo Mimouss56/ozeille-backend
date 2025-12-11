@@ -1,0 +1,163 @@
+name: Develop Pipeline
+
+on:
+  push:
+    branches: [develop]
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+  actions: write
+
+jobs:
+  full-audit:
+    runs-on: ubuntu-latest
+    outputs:
+      # dto-changed: ${{ steps.check-dto.outputs.dto-changed }}
+      tag-pushed: ${{ steps.semantic.outputs.tag-pushed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies (transactions-service)
+        run: |
+          cd apps/transactions-service
+          npm ci
+
+      - name: Install dependencies (users-service)
+        run: |
+          cd apps/users-service
+          npm ci
+
+      - name: Lint (transactions-service)
+        run: |
+          cd apps/transactions-service
+          npm run lint --if-present
+
+      - name: Lint (users-service)
+        run: |
+          cd apps/users-service
+          npm run lint --if-present
+
+      - name: Tests (transactions-service)
+        run: |
+          cd apps/transactions-service
+          npx prisma generate
+          npm test -- --passWithNoTests
+
+      - name: Tests (users-service)
+        run: |
+          cd apps/users-service
+          npx prisma generate
+          npm test -- --passWithNoTests
+
+      - name: SonarQube Full Scan
+        run: |
+          SONAR_TOKEN='${{ secrets.SONAR_TOKEN }}'
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "SONAR_TOKEN not set - skipping SonarQube full scan"
+            exit 0
+          fi
+          echo "Run Sonar full scan (placeholder)"
+
+      # - name: Check DTO changes
+      #   id: check-dto
+      #   run: |
+      #     # Detect DTO changes under backend/src/**/<module>/dto/*.dto.ts
+      #     CHANGED=$(git diff --name-only origin/main...HEAD | grep -E "(^backend/src/.*/dto/.*\.dto\.ts$)" || true)
+      #     echo "changed=$CHANGED"
+      #     if [ -n "$CHANGED" ]; then
+      #       echo "dto-changed=true" >> $GITHUB_OUTPUT
+      #     else
+      #       echo "dto-changed=false" >> $GITHUB_OUTPUT
+      #     fi
+
+      # - name: Build & Publish DTO package
+      #   if: steps.check-dto.outputs.dto-changed == 'true'
+      #   run: |
+      #     echo "DTO changes detected — attempting build & publish"
+      #     cd backend || exit 0
+      #     # Build DTOs if a build script exists
+      #     if npm run | grep -q "build:dtos"; then
+      #       npm run build:dtos || true
+      #     fi
+
+      #     # Publish to npm if NPM_TOKEN is set
+      #     NPM_TOKEN='${{ secrets.NPM_TOKEN }}'
+      #     if [ -z "$NPM_TOKEN" ]; then
+      #       echo "NPM_TOKEN not set - skipping npm publish of DTO package"
+      #     else
+      #       echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
+      #       # If package folder exists, try to publish (adjust path if needed)
+      #       if [ -d "packages/shared-dtos" ]; then
+      #         cd packages/shared-dtos
+      #         npm publish --access restricted || true
+      #       else
+      #         echo "No packages/shared-dtos folder found - implement publish steps if needed"
+      #       fi
+      #     fi
+
+      # - name: Update dependent package.json
+      #   if: steps.check-dto.outputs.dto-changed == 'true'
+      #   run: |
+      #     echo "Updating dependents to latest shared-dtos (manual or script required)"
+      #     # If you have a script to update dependent packages, run it here.
+      #     # Example placeholder (implement as needed):
+      #     # ./scripts/update-dto-dependents.sh
+      #     git config user.email "github-actions[bot]@users.noreply.github.com"
+      #     git config user.name "github-actions[bot]"
+      #     git add package.json package-lock.json || true
+      #     git commit -m "chore: update shared-dtos dependency [skip ci]" || true
+      #     git push origin HEAD:develop || true
+
+      - name: Docker Build & Push
+        env:
+          DOCKER_REGISTRY: ghcr.io/${{ github.repository_owner }}
+        run: |
+          echo "Building Docker images"
+          # Placeholder: build and push images for services and frontend
+          echo "docker build/push steps here (implement using npm scripts or Dockerfiles)"
+
+      - name: Semantic Release
+        id: semantic
+        run: |
+          NPM_TOKEN='${{ secrets.NPM_TOKEN }}'
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "NPM_TOKEN not set - skipping semantic-release"
+            echo "tag-pushed=false" >> $GITHUB_OUTPUT
+          else
+            echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
+            npx semantic-release || true
+            echo "tag-pushed=false" >> $GITHUB_OUTPUT
+          fi
+
+  # merge-to-main:
+  #   needs: full-audit
+  #   runs-on: ubuntu-latest
+  #   if: needs.full-audit.outputs.tag-pushed == 'true' || needs.full-audit.outputs.tag-pushed == 'false'
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v5
+  #       with:
+  #         fetch-depth: 0
+
+  #     - name: Fast-forward develop -> main
+  #       run: |
+  #         git config user.email "github-actions[bot]@users.noreply.github.com"
+  #         git config user.name "github-actions[bot]"
+  #         git fetch origin main
+  #         git fetch origin develop
+  #         git checkout main
+  #         git merge --ff-only origin/develop || {
+  #           echo "Fast-forward failed (conflict or non-fast-forward)";
+  #           exit 1;
+  #         }
+  #         git push origin main
