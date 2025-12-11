@@ -27,6 +27,24 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('apps/*/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: Start PostgreSQL for tests
+        run: |
+          docker run --name postgres_ci \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_USER=postgres \
+            -e POSTGRES_DB=testdb \
+            -p 5432:5432 \
+            -d postgres:15-alpine
+          sleep 5
+
       - name: Install dependencies (transactions-service)
         run: |
           cd apps/transactions-service
@@ -52,12 +70,16 @@ jobs:
           cd apps/transactions-service
           npx prisma generate
           npm test -- --passWithNoTests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
 
       - name: Tests (users-service)
         run: |
           cd apps/users-service
           npx prisma generate
           npm test -- --passWithNoTests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
 
       - name: SonarQube Full Scan
         run: |
@@ -135,29 +157,32 @@ jobs:
             echo "tag-pushed=false" >> $GITHUB_OUTPUT
           else
             echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
-            npx semantic-release || true
-            echo "tag-pushed=false" >> $GITHUB_OUTPUT
+            if npx semantic-release; then
+              echo "tag-pushed=true" >> $GITHUB_OUTPUT
+            else
+              echo "tag-pushed=false" >> $GITHUB_OUTPUT
+            fi
           fi
 
-  # merge-to-main:
-  #   needs: full-audit
-  #   runs-on: ubuntu-latest
-  #   if: needs.full-audit.outputs.tag-pushed == 'true' || needs.full-audit.outputs.tag-pushed == 'false'
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v5
-  #       with:
-  #         fetch-depth: 0
+  merge-to-main:
+    needs: full-audit
+    runs-on: ubuntu-latest
+    if: needs.full-audit.outputs.tag-pushed == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
-  #     - name: Fast-forward develop -> main
-  #       run: |
-  #         git config user.email "github-actions[bot]@users.noreply.github.com"
-  #         git config user.name "github-actions[bot]"
-  #         git fetch origin main
-  #         git fetch origin develop
-  #         git checkout main
-  #         git merge --ff-only origin/develop || {
-  #           echo "Fast-forward failed (conflict or non-fast-forward)";
-  #           exit 1;
-  #         }
-  #         git push origin main
+      - name: Fast-forward develop -> main
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git fetch origin main
+          git fetch origin develop
+          git checkout main
+          git merge --ff-only origin/develop || {
+            echo "Fast-forward failed (conflict or non-fast-forward)";
+            exit 1;
+          }
+          git push origin main

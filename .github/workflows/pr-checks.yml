@@ -24,6 +24,14 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('apps/*/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
       - name: Detect changed modules & run checks per-module
         shell: bash
         run: |
@@ -38,19 +46,19 @@ jobs:
           DIFF=$(git diff --name-only origin/develop...HEAD || true)
           echo "Changed paths:\n$DIFF"
 
-          SERVICES_DIR="backend/apps"
+          SERVICES_DIR="apps"
           # associative array already initialized above
 
           # Find services that have changes and the specific modules under src
           while IFS= read -r path; do
-            # match backend/apps/<service>/src/<module>/...
-            if [[ $path =~ ^backend/apps/([^/]+)/src/([^/]+)/ ]]; then
+            # match apps/<service>/src/<module>/...
+            if [[ $path =~ ^apps/([^/]+)/src/([^/]+)/ ]]; then
               svc=${BASH_REMATCH[1]}
               mod=${BASH_REMATCH[2]}
               SERVICE_MODULES["$svc"]+="$mod "
             else
               # if change anywhere under service, mark service for full run
-              if [[ $path =~ ^backend/apps/([^/]+)/ ]]; then
+              if [[ $path =~ ^apps/([^/]+)/ ]]; then
                 svc=${BASH_REMATCH[1]}
                 SERVICE_MODULES["$svc"]+="__ALL__ "
               fi
@@ -71,12 +79,6 @@ jobs:
           for svc in "${!SERVICE_MODULES[@]}"; do
             echo "- $svc : ${SERVICE_MODULES[$svc]}"
           done
-
-          # Install root deps if present
-          if [ -f backend/package.json ]; then
-            echo "Installing root backend dependencies"
-            (cd backend && npm ci)
-          fi
 
           # Run checks per service/module
           for svc in "${!SERVICE_MODULES[@]}"; do

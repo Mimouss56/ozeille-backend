@@ -4,35 +4,48 @@ on:
   push:
     branches:
       - main
-  workflow_run:
-    workflows: ["Auto Merge to Develop"]
-    types: [completed]
 
 jobs:
-  lint-and-build:
-    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
-    uses: ./.github/workflows/ci-common.yml
-    with:
-      path: ./backend
-      node-version: "24"
-    secrets: inherit
-
   release:
-    needs: lint-and-build
     permissions:
       contents: write
       issues: write
       pull-requests: write
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./backend
     steps:
       - uses: actions/checkout@v5
+
       - uses: actions/setup-node@v5
         with:
-          node-version: 24
-      - run: npm ci
+          node-version: 22
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('apps/*/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: Start PostgreSQL for tests
+        run: |
+          docker run --name postgres_ci \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_USER=postgres \
+            -e POSTGRES_DB=testdb \
+            -p 5432:5432 \
+            -d postgres:15-alpine
+          sleep 5
+
+      - name: Install dependencies (transactions-service)
+        run: |
+          cd apps/transactions-service
+          npm ci
+      - name: Install dependencies (users-service)
+        run: |
+          cd apps/users-service
+          npm ci
       - run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb

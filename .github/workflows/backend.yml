@@ -1,23 +1,18 @@
-name: Backend CI
+name: Backend CI (DEPRECATED - use develop-pipeline.yml instead)
+# This workflow is kept for reference but should not be used
+# The paths filter will never match since we're already in the backend repo
+
 permissions:
   contents: read
   issues: write
   pull-requests: write
 
 on:
-  push:
-    branches: [develop]
-    paths:
-      - "backend/**"
-  pull_request:
-    branches: [develop]
-    paths:
-      - "backend/**"
+  workflow_dispatch: # Manual trigger only
 
 jobs:
-  call-ci-common:
-    uses: ./.github/workflows/ci-common.yml
-    with:
-      path: ./backend
-      node-version: "24"
-    secrets: inherit
+  deprecated-notice:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deprecated workflow notice
+        run: echo "This workflow is deprecated. Use develop-pipeline.yml or pr-checks.yml instead."
