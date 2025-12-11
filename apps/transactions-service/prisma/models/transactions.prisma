@@ -6,11 +6,14 @@ model Transaction {
   pointedAt DateTime? @map("pointed_at") @db.Timestamptz(0)
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(0)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(0)
+  
   // endDate   DateTime? @map("end_date")
-  //categoryId
+  
+  categoryId String?   @map("category_id") // nullable 
+  category   Category? @relation(fields: [categoryId], references: [id])
+
   frequencyId String?    @map("frequency_id")
   frequency   Frequency? @relation(fields: [frequencyId], references: [id])
   
-
   @@map("transactions")
 }

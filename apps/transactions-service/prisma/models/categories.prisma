@@ -10,6 +10,8 @@ model Category {
   userId       String?  @map("user_id")
 
   limitAmount  Decimal  @default(0) @db.Decimal(10, 2) @map("limit_amount")
+
+  transactions Transaction[]
   
   // Contrainte unique : "label + user_id + budget_id"
   // Empêcher d'avoir deux fois une catégorie pour le même user dans le même budget 
