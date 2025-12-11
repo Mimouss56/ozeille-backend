@@ -89,32 +89,22 @@ export class AuthController {
     description: "Email ou mot de passe incorrect, ou email non confirmé",
   })
   async login(@Body() loginDto: LoginDto): Promise<LoginResponseDto> {
-    try {
-      // Valider les credentials
-      const { userId } = await this.authUsecaseLogin.validateCredentials(loginDto.email, loginDto.password);
+    // Valider les credentials
+    const { userId } = await this.authUsecaseLogin.validateCredentials(loginDto.email, loginDto.password);
 
-      // Générer et stocker le code 2FA
-      const code2FA = await this.authUsecase2FA.generateAndStore2FACode(userId);
+    // Générer et stocker le code 2FA
+    const code2FA = await this.authUsecase2FA.generateAndStore2FACode(userId);
 
-      // Générer et stocker le token temporaire
-      const tempToken = await this.authUsecaseTempToken.generateAndStoreTempToken(userId);
+    // Générer et stocker le token temporaire
+    const tempToken = await this.authUsecaseTempToken.generateAndStoreTempToken(userId);
 
-      // Envoyer le code par email (ne pas bloquer si l'envoi échoue)
-      try {
-        await this.mailerUsecaseSend2FACode.send2FACode(loginDto.email, code2FA);
-      } catch (emailError) {
-        console.error("Failed to send 2FA code email:", emailError);
-        throw emailError;
-      }
+    // Envoyer le code par email (ne pas bloquer si l'envoi échoue)
+    await this.mailerUsecaseSend2FACode.send2FACode(loginDto.email, code2FA);
 
-      return {
-        message: "Un code de vérification a été envoyé à votre adresse email",
-        tempToken,
-      };
-    } catch (error) {
-      console.error("Error in login:", error);
-      throw error;
-    }
+    return {
+      message: "Un code de vérification a été envoyé à votre adresse email",
+      tempToken,
+    };
   }
 
   @Post("2fa/validate")

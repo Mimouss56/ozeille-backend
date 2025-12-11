@@ -21,38 +21,7 @@ describe("POST /api/auth/login (e2e)", () => {
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-      providers: [
-        {
-          provide: Redis,
-          useFactory: () => {
-            return new Redis({
-              host: process.env.REDIS_HOST || "localhost",
-              port: parseInt(process.env.REDIS_PORT || "6379", 10),
-              maxRetriesPerRequest: 3,
-              retryStrategy: (times: number) => {
-                if (times > 3) return null;
-                return Math.min(times * 50, 2000);
-              },
-            });
-          },
-        },
-      ],
-    })
-      .overrideProvider(Redis)
-      .useFactory({
-        factory: () => {
-          return new Redis({
-            host: process.env.REDIS_HOST || "localhost",
-            port: parseInt(process.env.REDIS_PORT || "6379", 10),
-            maxRetriesPerRequest: 3,
-            retryStrategy: (times: number) => {
-              if (times > 3) return null;
-              return Math.min(times * 50, 2000);
-            },
-          });
-        },
-      })
-      .compile();
+    }).compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
@@ -101,7 +70,6 @@ describe("POST /api/auth/login (e2e)", () => {
   });
 
   it("devrait se connecter avec des credentials valides et envoyer un code 2FA avec un tempToken", async () => {
-
     const response = await request(app.getHttpServer()).post("/api/auth/login").send({
       email: testUser.email,
       password: testUser.password,
@@ -109,6 +77,11 @@ describe("POST /api/auth/login (e2e)", () => {
 
     console.log("Response status:", response.status);
     console.log("Response body:", response.body);
+
+    if (response.status !== 201) {
+      console.error("Expected 201 but got:", response.status);
+      console.error("Error details:", JSON.stringify(response.body, null, 2));
+    }
 
     expect(response.status).toBe(201);
     expect(response.body).toHaveProperty("message");

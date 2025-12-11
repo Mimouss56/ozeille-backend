@@ -4,7 +4,6 @@ import { AuthUsecaseJWT } from "src/auth/usecases/auth.usecase.jwt";
 import { AuthUsecaseLogin } from "src/auth/usecases/auth.usecase.login";
 import { AuthUsecaseTempToken } from "src/auth/usecases/auth.usecase.temp-token";
 import { AuthUsecaseValidate2FA } from "src/auth/usecases/auth.usecase.validate-2fa";
-import { AuthUsecaseVerify2FA } from "src/auth/usecases/auth.usecase.verify-2fa";
 import { AuthUsecaseVerifyConfirmation } from "src/auth/usecases/auth.usecase.verify-confirmation";
 import { MailerAlreadyExistUsecase } from "src/mailer/usecase/mailer.usecase.already-exist";
 import { MailerUsecaseConfirmEmail } from "src/mailer/usecase/mailer.usecase.confirm-email";
@@ -25,7 +24,6 @@ import { AuthController } from "./auth.controller";
     AuthUsecaseTempToken,
     AuthUsecaseJWT,
     AuthUsecaseValidate2FA,
-    AuthUsecaseVerify2FA,
     UsersUsecaseRegister,
     UserUsecaseFind,
     UserUsecaseCreate,

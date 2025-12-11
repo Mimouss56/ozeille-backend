@@ -21,7 +21,7 @@ export class AuthUsecaseLogin {
       await this.mailerUsecaseConfirmEmail.registerEmail(email);
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = bcrypt.compareSync(password, user.password);
 
     if (!isPasswordValid) {
       throw new UnauthorizedException("Email ou mot de passe incorrect");
