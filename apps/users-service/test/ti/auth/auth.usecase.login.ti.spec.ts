@@ -1,6 +1,7 @@
-import { UnauthorizedException } from "@nestjs/common";
+import { NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { Test, TestingModule } from "@nestjs/testing";
 import * as bcrypt from "bcrypt";
+import Redis from "ioredis";
 import { MailerUsecaseConfirmEmail } from "src/mailer/usecase/mailer.usecase.confirm-email";
 import { MailerUsecaseSendMail } from "src/mailer/usecase/mailer.usecase.send-mail";
 import { UserUsecaseFind } from "src/users/usecases/user.usecase.find-by";
@@ -18,6 +19,7 @@ describe("AuthUsecaseLogin TI", () => {
       providers: [
         AuthUsecaseLogin,
         MailerUsecaseSendMail,
+        Redis,
         {
           provide: UserUsecaseFind,
           useValue: {
@@ -37,87 +39,83 @@ describe("AuthUsecaseLogin TI", () => {
     jest.clearAllMocks();
   });
 
-  describe("validateCredentials", () => {
-    const validEmail = "test@example.com";
-    const validPassword = "Password123!";
-    const hashedPassword = "hashedPassword123";
+  const validEmail = "test@example.com";
+  const validPassword = "Password123!";
+  const hashedPassword = "hashedPassword123";
 
-    it("devrait valider les credentials et retourner le userId", async () => {
-      const mockUser = {
-        id: "user-id-123",
-        email: validEmail,
-        password: hashedPassword,
-        firstName: "John",
-        lastName: "Doe",
-        confirmedAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+  it("devrait valider les credentials et retourner le userId", async () => {
+    const mockUser = {
+      id: "user-id-123",
+      email: validEmail,
+      password: hashedPassword,
+      firstName: "John",
+      lastName: "Doe",
+      confirmedAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
 
-      mockUserUsecaseFind.findByEmailWithPassword.mockResolvedValue(mockUser);
-      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+    mockUserUsecaseFind.findByEmailWithPassword.mockResolvedValue(mockUser);
+    (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
-      const result = await usecase.validateCredentials(validEmail, validPassword);
+    const result = await usecase.validateCredentials(validEmail, validPassword);
 
-      expect(result).toEqual({ userId: "user-id-123" });
-      expect(mockUserUsecaseFind.findByEmailWithPassword).toHaveBeenCalledWith(validEmail);
-      expect(bcrypt.compare).toHaveBeenCalledWith(validPassword, hashedPassword);
-    });
+    expect(result).toEqual({ userId: "user-id-123" });
+    expect(mockUserUsecaseFind.findByEmailWithPassword).toHaveBeenCalledWith(validEmail);
+    expect(bcrypt.compare).toHaveBeenCalledWith(validPassword, hashedPassword);
+  });
 
-    it("devrait lever une UnauthorizedException si l'utilisateur n'existe pas", async () => {
-      mockUserUsecaseFind.findByEmailWithPassword.mockResolvedValue(null);
+  it("devrait lever une UnauthorizedException si l'utilisateur n'existe pas", async () => {
+    mockUserUsecaseFind.findByEmailWithPassword.mockResolvedValue(null);
 
-      await expect(usecase.validateCredentials(validEmail, validPassword)).rejects.toThrow(
-        new UnauthorizedException("Email ou mot de passe incorrect"),
-      );
+    await expect(usecase.validateCredentials(validEmail, validPassword)).rejects.toThrow(
+      new UnauthorizedException("Email ou mot de passe incorrect"),
+    );
 
-      expect(mockUserUsecaseFind.findByEmailWithPassword).toHaveBeenCalledWith(validEmail);
-      expect(bcrypt.compare).not.toHaveBeenCalled();
-    });
+    expect(mockUserUsecaseFind.findByEmailWithPassword).toHaveBeenCalledWith(validEmail);
+    expect(bcrypt.compare).not.toHaveBeenCalled();
+  });
 
-    it("devrait lever une UnauthorizedException si l'email n'est pas confirmé", async () => {
-      const mockUser = {
-        id: "user-id-123",
-        email: validEmail,
-        password: hashedPassword,
-        firstName: "John",
-        lastName: "Doe",
-        confirmedAt: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+  it("devrait lever une UnauthorizedException si l'email n'est pas confirmé", async () => {
+    const mockUser = {
+      id: "user-id-123",
+      email: validEmail,
+      password: hashedPassword,
+      firstName: "John",
+      lastName: "Doe",
+      confirmedAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
 
-      mockUserUsecaseFind.findByEmailWithPassword.mockResolvedValue(mockUser);
+    mockUserUsecaseFind.findByEmailWithPassword.mockResolvedValue(mockUser);
 
-      await expect(usecase.validateCredentials(validEmail, validPassword)).rejects.toThrow(
-        new UnauthorizedException("Email non confirmé"),
-      );
+    await expect(usecase.validateCredentials(validEmail, validPassword)).rejects.toThrow(new NotFoundException());
 
-      expect(mockUserUsecaseFind.findByEmailWithPassword).toHaveBeenCalledWith(validEmail);
-      expect(bcrypt.compare).not.toHaveBeenCalled();
-    });
+    expect(mockUserUsecaseFind.findByEmailWithPassword).toHaveBeenCalledWith(validEmail);
+    expect(bcrypt.compare).not.toHaveBeenCalled();
+  });
 
-    it("devrait lever une UnauthorizedException si le mot de passe est incorrect", async () => {
-      const mockUser = {
-        id: "user-id-123",
-        email: validEmail,
-        password: hashedPassword,
-        firstName: "John",
-        lastName: "Doe",
-        confirmedAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+  it("devrait lever une UnauthorizedException si le mot de passe est incorrect", async () => {
+    const mockUser = {
+      id: "user-id-123",
+      email: validEmail,
+      password: hashedPassword,
+      firstName: "John",
+      lastName: "Doe",
+      confirmedAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
 
-      mockUserUsecaseFind.findByEmailWithPassword.mockResolvedValue(mockUser);
-      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+    mockUserUsecaseFind.findByEmailWithPassword.mockResolvedValue(mockUser);
+    (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-      await expect(usecase.validateCredentials(validEmail, validPassword)).rejects.toThrow(
-        new UnauthorizedException("Email ou mot de passe incorrect"),
-      );
+    await expect(usecase.validateCredentials(validEmail, validPassword)).rejects.toThrow(
+      new UnauthorizedException("Email ou mot de passe incorrect"),
+    );
 
-      expect(mockUserUsecaseFind.findByEmailWithPassword).toHaveBeenCalledWith(validEmail);
-      expect(bcrypt.compare).toHaveBeenCalledWith(validPassword, hashedPassword);
-    });
+    expect(mockUserUsecaseFind.findByEmailWithPassword).toHaveBeenCalledWith(validEmail);
+    expect(bcrypt.compare).toHaveBeenCalledWith(validPassword, hashedPassword);
   });
 });

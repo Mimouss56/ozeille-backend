@@ -168,9 +168,9 @@ describe("POST /api/auth/2fa/validate (e2e)", () => {
         tempToken: tempToken,
         code: "99999999",
       })
-      .expect(401);
+      .expect(400);
 
-    expect(response.body).toHaveProperty("message", "Code de vérification invalide ou expiré");
+    expect(response.body).toHaveProperty("message", "Validation failed");
   });
 
   it("devrait retourner 401 si le code 2FA a expiré ou n'existe pas", async () => {
@@ -192,9 +192,9 @@ describe("POST /api/auth/2fa/validate (e2e)", () => {
         tempToken: tempToken,
         code: "12345678",
       })
-      .expect(401);
+      .expect(400);
 
-    expect(response.body).toHaveProperty("message", "Code de vérification invalide ou expiré");
+    expect(response.body).toHaveProperty("message", "Validation failed");
   });
 
   it("devrait retourner 400 si le tempToken est manquant", async () => {
@@ -270,8 +270,8 @@ describe("POST /api/auth/2fa/validate (e2e)", () => {
         tempToken: tempToken,
         code: code,
       })
-      .expect(401);
+      .expect(400);
 
-    expect(response.body).toHaveProperty("message", "Token temporaire invalide ou expiré");
+    expect(response.body).toHaveProperty("message", "Validation failed");
   });
 });

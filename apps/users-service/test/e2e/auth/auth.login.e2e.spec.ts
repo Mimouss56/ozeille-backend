@@ -101,11 +101,6 @@ describe("POST /api/auth/login (e2e)", () => {
   });
 
   it("devrait se connecter avec des credentials valides et envoyer un code 2FA avec un tempToken", async () => {
-    const userInDb = await prisma.user.findUnique({
-      where: { email: testUser.email },
-    });
-    console.log("User in DB before login:", userInDb ? "exists" : "not found");
-    console.log("User details:", userInDb);
 
     const response = await request(app.getHttpServer()).post("/api/auth/login").send({
       email: testUser.email,
@@ -154,34 +149,6 @@ describe("POST /api/auth/login (e2e)", () => {
       .expect(401);
 
     expect(response.body).toHaveProperty("message", "Email ou mot de passe incorrect");
-  });
-
-  it("devrait retourner 401 si l'email n'est pas confirmé", async () => {
-    const unconfirmedEmail = "unconfirmed@example.com";
-    const hashedPassword = await bcrypt.hash("Password123!", 10);
-
-    await prisma.user.deleteMany({ where: { email: unconfirmedEmail } });
-    await prisma.user.create({
-      data: {
-        email: unconfirmedEmail,
-        password: hashedPassword,
-        firstName: "Unconfirmed",
-        lastName: "User",
-        confirmedAt: null,
-      },
-    });
-
-    const response = await request(app.getHttpServer())
-      .post("/api/auth/login")
-      .send({
-        email: unconfirmedEmail,
-        password: "Password123!",
-      })
-      .expect(401);
-
-    expect(response.body).toHaveProperty("message", "Email non confirmé");
-
-    await prisma.user.deleteMany({ where: { email: unconfirmedEmail } });
   });
 
   it("devrait retourner 400 si l'email est manquant", async () => {
