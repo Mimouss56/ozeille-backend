@@ -14,7 +14,7 @@ jobs:
   full-audit:
     runs-on: ubuntu-latest
     outputs:
-      dto-changed: ${{ steps.check-dto.outputs.dto-changed }}
+      # dto-changed: ${{ steps.check-dto.outputs.dto-changed }}
       tag-pushed: ${{ steps.semantic.outputs.tag-pushed }}
     steps:
       - name: Checkout
