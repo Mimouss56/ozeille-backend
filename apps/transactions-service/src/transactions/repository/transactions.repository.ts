@@ -51,37 +51,37 @@ export class TransactionsRepository {
   }
 
   getById(id: string): Promise<Transaction | null> {
-    return this.prisma.transaction.findUnique({ 
+    return this.prisma.transaction.findUnique({
       where: { id },
-      include: { category: true }, 
+      include: { category: true },
     });
   }
 
   async create(transaction: CreateTransactionRequest): Promise<Transaction> {
     const { categoryId, frequencyId, ...rest } = transaction;
 
-    return this.prisma.transaction.create({ 
+    return this.prisma.transaction.create({
       data: {
         ...rest,
         category: categoryId ? { connect: { id: categoryId } } : undefined,
         frequency: frequencyId ? { connect: { id: frequencyId } } : undefined,
       },
-      include: { category: true, frequency: true }, 
+      include: { category: true, frequency: true },
     });
   }
 
   updateOne(id: string, transaction: UpdateTransactionRequest): Promise<Transaction> {
     const { categoryId, frequencyId, ...rest } = transaction;
 
-    return this.prisma.transaction.update({ 
-      where: { id }, 
+    return this.prisma.transaction.update({
+      where: { id },
       data: {
         ...rest,
-        ...(categoryId !== undefined && { 
-          category: categoryId ? { connect: { id: categoryId } } : { disconnect: true } 
+        ...(categoryId !== undefined && {
+          category: categoryId ? { connect: { id: categoryId } } : { disconnect: true },
         }),
       },
-      include: { category: true }, 
+      include: { category: true },
     });
   }
 
