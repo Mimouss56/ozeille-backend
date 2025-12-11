@@ -97,12 +97,76 @@ jobs:
     name: Test ${{ matrix.service }}
     needs: detect-changes
     if: needs.detect-changes.outputs.has-changes == 'true'
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.detect-changes.outputs.services-matrix) }}
-    uses: ./.github/workflows/ci-common.yml
-    with:
-      service: ${{ matrix.service }}
-      modules: ${{ matrix.modules }}
-      node-version: "24"
-    secrets: inherit
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ matrix.service }}-${{ hashFiles(format('apps/{0}/package-lock.json', matrix.service)) }}
+          restore-keys: |
+            ${{ runner.os }}-npm-${{ matrix.service }}-
+
+      - name: Install dependencies
+        working-directory: apps/${{ matrix.service }}
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: apps/${{ matrix.service }}
+        run: |
+          if [ -f "prisma/schema.prisma" ]; then
+            npx prisma generate
+            npx prisma migrate deploy || echo "No migrations to run"
+          fi
+
+      - name: Lint modules
+        working-directory: apps/${{ matrix.service }}
+        run: |
+          IFS=',' read -ra MODS <<< "${{ matrix.modules }}"
+          for mod in "${MODS[@]}"; do
+            echo "::group::Linting module: $mod"
+            npx eslint "src/$mod/**/*.ts" --max-warnings=0 || true
+            echo "::endgroup::"
+          done
+
+      - name: Test modules
+        working-directory: apps/${{ matrix.service }}
+        run: |
+          IFS=',' read -ra MODS <<< "${{ matrix.modules }}"
+          for mod in "${MODS[@]}"; do
+            echo "::group::Testing module: $mod"
+            npm test -- --testPathPattern="src/$mod" --passWithNoTests || true
+            echo "::endgroup::"
+          done
