@@ -69,6 +69,7 @@ jobs:
         run: |
           cd apps/transactions-service
           npx prisma generate
+          npx prisma migrate deploy --schema=prisma/schema.prisma
           npm test -- --passWithNoTests
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
@@ -77,6 +78,7 @@ jobs:
         run: |
           cd apps/users-service
           npx prisma generate
+          npx prisma migrate deploy --schema=prisma/schema.prisma
           npm test -- --passWithNoTests
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
