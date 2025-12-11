@@ -30,7 +30,8 @@ export class AuthController {
   })
   async confirm(@Query("token") token?: string): Promise<boolean> {
     if (!token) throw new BadRequestException("token is required");
-    return await this.authUsecaseVerifyConfirmation.verify(token);
+    const result = await this.authUsecaseVerifyConfirmation.verify(token);
+    return result;
   }
 
   @Post("register/send-confirmation-email")

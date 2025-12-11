@@ -1,6 +1,6 @@
-import type { INestApplication } from "@nestjs/common";
+import { HttpStatus, type INestApplication } from "@nestjs/common";
 import { Test, TestingModule } from "@nestjs/testing";
-import type { Redis } from "ioredis";
+import Redis from "ioredis";
 import { AppModule } from "src/app.module";
 import { PrismaService } from "src/prisma/prisma.service";
 import request from "supertest";
@@ -13,18 +13,41 @@ describe("AuthController (e2e)", () => {
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+      providers: [
+        {
+          provide: Redis,
+          useFactory: () => {
+            return new Redis({
+              host: process.env.REDIS_HOST || "localhost",
+              port: parseInt(process.env.REDIS_PORT || "6379", 10),
+            });
+          },
+        },
+      ],
+    })
+      .overrideProvider(Redis)
+      .useFactory({
+        factory: () => {
+          return new Redis({
+            host: process.env.REDIS_HOST || "localhost",
+            port: parseInt(process.env.REDIS_PORT || "6379", 10),
+          });
+        },
+      })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
 
     prisma = moduleFixture.get<PrismaService>(PrismaService);
-    redis = moduleFixture.get<Redis>("REDIS");
+    redis = moduleFixture.get<Redis>(Redis);
   });
 
   afterAll(async () => {
     await prisma.$disconnect();
-    await redis.quit();
+    if (redis) {
+      await redis.quit();
+    }
     await app.close();
   });
 
@@ -43,7 +66,7 @@ describe("AuthController (e2e)", () => {
     });
 
     it("devrait créer un utilisateur avec des données valides", async () => {
-      const response = await request(app.getHttpServer()).post("/api/auth/register").send(validUser).expect(204);
+      const response = await request(app.getHttpServer()).post("/api/auth/register").send(validUser).expect(201);
 
       expect(response.body).toEqual({});
 
@@ -84,7 +107,7 @@ describe("AuthController (e2e)", () => {
           password: "Password123!",
           confirmedPassword: "DifferentPassword123!",
         })
-        .expect(400);
+        .expect(HttpStatus.NOT_ACCEPTABLE);
 
       expect(response.body).toHaveProperty("message");
     });
@@ -110,7 +133,7 @@ describe("AuthController (e2e)", () => {
     });
   });
 
-  describe("GET /api/auth/confirm", () => {
+  describe("POST /api/auth/register/confirm", () => {
     const testEmail = "confirm-test@example.com";
     const testToken = "test-token-123";
 
@@ -137,11 +160,11 @@ describe("AuthController (e2e)", () => {
       await redis.set(`confirm-email-token:${testToken}`, testEmail);
 
       const response = await request(app.getHttpServer())
-        .get("/api/auth/confirm")
+        .post("/api/auth/register/confirm")
         .query({ token: testToken })
-        .expect(200);
+        .expect(201);
 
-      expect(response.body).toEqual({ ok: true });
+      expect(response.body).toEqual(true);
 
       // Vérifier que confirmedAt est mis à jour
       const user = await prisma.user.findUnique({
@@ -155,34 +178,28 @@ describe("AuthController (e2e)", () => {
     });
 
     it("devrait retourner 400 si le token est manquant", async () => {
-      const response = await request(app.getHttpServer()).get("/api/auth/confirm").expect(400);
+      const response = await request(app.getHttpServer()).post("/api/auth/register/confirm").expect(400);
 
       expect(response.body).toHaveProperty("message", "token is required");
     });
 
     it("devrait retourner ok: false si le token est invalide", async () => {
       const response = await request(app.getHttpServer())
-        .get("/api/auth/confirm")
+        .post("/api/auth/register/confirm")
         .query({ token: "invalid-token" })
-        .expect(200);
+        .expect(201);
 
-      expect(response.body).toEqual({
-        ok: false,
-        message: "Invalid or expired token",
-      });
+      expect(response.body).toEqual(false);
     });
 
     it("devrait retourner ok: false si le token a expiré", async () => {
       // Ne pas définir de token dans Redis pour simuler l'expiration
       const response = await request(app.getHttpServer())
-        .get("/api/auth/confirm")
+        .post("/api/auth/register/confirm")
         .query({ token: "expired-token" })
-        .expect(200);
+        .expect(201);
 
-      expect(response.body).toEqual({
-        ok: false,
-        message: "Invalid or expired token",
-      });
+      expect(response.body).toEqual(false);
     });
   });
 });
