@@ -20,6 +20,13 @@ describe("AuthController (e2e)", () => {
             return new Redis({
               host: process.env.REDIS_HOST || "localhost",
               port: parseInt(process.env.REDIS_PORT || "6379", 10),
+              maxRetriesPerRequest: 3,
+              retryStrategy: (times: number) => {
+                if (times > 3) {
+                  return null; // Stop retrying
+                }
+                return Math.min(times * 50, 2000);
+              },
             });
           },
         },
@@ -31,6 +38,13 @@ describe("AuthController (e2e)", () => {
           return new Redis({
             host: process.env.REDIS_HOST || "localhost",
             port: parseInt(process.env.REDIS_PORT || "6379", 10),
+            maxRetriesPerRequest: 3,
+            retryStrategy: (times: number) => {
+              if (times > 3) {
+                return null;
+              }
+              return Math.min(times * 50, 2000);
+            },
           });
         },
       })
@@ -41,7 +55,7 @@ describe("AuthController (e2e)", () => {
 
     prisma = moduleFixture.get<PrismaService>(PrismaService);
     redis = moduleFixture.get<Redis>(Redis);
-  });
+  }, 30000);
 
   afterAll(async () => {
     await prisma.$disconnect();
@@ -49,7 +63,7 @@ describe("AuthController (e2e)", () => {
       await redis.quit();
     }
     await app.close();
-  });
+  }, 10000);
 
   describe("POST /api/auth/register", () => {
     const validUser = {
@@ -152,8 +166,12 @@ describe("AuthController (e2e)", () => {
 
     afterEach(async () => {
       // Nettoyer Redis
-      await redis.del(`confirm-email-token:${testToken}`);
-    });
+      try {
+        await redis.del(`confirm-email-token:${testToken}`);
+      } catch (error) {
+        console.warn("Failed to clean Redis in afterEach:", error);
+      }
+    }, 10000);
 
     it("devrait confirmer l'email avec un token valide", async () => {
       // Configurer le token dans Redis
