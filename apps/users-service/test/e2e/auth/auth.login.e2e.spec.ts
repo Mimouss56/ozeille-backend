@@ -75,14 +75,6 @@ describe("POST /api/auth/login (e2e)", () => {
       password: testUser.password,
     });
 
-    console.log("Response status:", response.status);
-    console.log("Response body:", response.body);
-
-    if (response.status !== 201) {
-      console.error("Expected 201 but got:", response.status);
-      console.error("Error details:", JSON.stringify(response.body, null, 2));
-    }
-
     expect(response.status).toBe(201);
     expect(response.body).toHaveProperty("message");
     expect(response.body).toHaveProperty("tempToken");
