@@ -51,13 +51,13 @@ jobs:
         run: |
           cd apps/transactions-service
           npx prisma generate
-          npm test -- --passWithNoTests --if-present
+          npm test -- --passWithNoTests
 
       - name: Tests (users-service)
         run: |
           cd apps/users-service
           npx prisma generate
-          npm test -- --passWithNoTests --if-present
+          npm test -- --passWithNoTests
 
       - name: SonarQube Full Scan
         run: |
