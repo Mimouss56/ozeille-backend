@@ -27,7 +27,9 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-          cache-dependency-path: "backend/apps/*/package-lock.json"
+          cache-dependency-path: |
+            backend/apps/transactions-service/package-lock.json
+            backend/apps/users-service/package-lock.json
 
       - name: Install dependencies (transactions-service)
         run: |
