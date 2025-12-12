@@ -5,6 +5,7 @@ import { MailerService } from "src/mailer/services/mailer.service";
 import { CreateUserDto } from "src/users/dto/create-user.dto";
 import { UsersService } from "src/users/services/users.service";
 
+import { ResetPasswordDto } from "../../users/dto/reset-password.dto";
 import { EmailDto } from "../dto/email.dto";
 import { ForgotPasswordDto } from "../dto/forgot-password.dto";
 import { ForgotPasswordResponseDto } from "../dto/forgot-password.response.dto";
@@ -107,5 +108,21 @@ export class AuthController {
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto): Promise<ForgotPasswordResponseDto> {
     await this.authService.forgotPassword(forgotPasswordDto.email);
     return { message: "Si ce compte existe, un email a été envoyé" };
+  }
+
+  @Post("reset-password")
+  @ApiOkResponse({
+    description: "Mot de passe réinitialisé avec succès",
+  })
+  @ApiBadRequestResponse({
+    description: "Validation failed",
+    type: ValidationErrorResponse,
+  })
+  @ApiUnauthorizedResponse({
+    description: "Token de réinitialisation invalide ou expiré",
+  })
+  @ApiResponse({ status: 503, description: "Internal Server Error." })
+  async resetPassword(@Query("token") token: string, @Body() resetPassword: ResetPasswordDto): Promise<void> {
+    return this.authService.resetPassword(token, resetPassword);
   }
 }

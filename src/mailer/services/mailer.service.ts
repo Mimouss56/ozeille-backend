@@ -1,5 +1,8 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { randomUUID } from "crypto";
 import { Transporter, createTransport } from "nodemailer";
+import { REDIS_TTL } from "src/auth/constants/redis.constants";
+import { RedisKey, RedisService } from "src/redis/redis.module";
 
 import { MailerRepository } from "../repository/mailer.repository";
 
@@ -8,7 +11,10 @@ export class MailerService {
   private transporter: Transporter;
   private readonly logger = new Logger(MailerService.name);
 
-  constructor(private readonly repository: MailerRepository) {
+  constructor(
+    private readonly repository: MailerRepository,
+    private readonly redisService: RedisService,
+  ) {
     this.transporter = createTransport({
       host: process.env.MAILER_HOST ?? "localhost",
       port: parseInt(process.env.MAILER_PORT ?? "1025", 10),
@@ -45,7 +51,10 @@ export class MailerService {
    * Send confirmation email with token
    */
   async sendConfirmationEmail(email: string, firstName?: string): Promise<void> {
-    const token = await this.repository.generateAndStoreConfirmToken(email);
+    const token = randomUUID();
+
+    // Store hash with expiration
+    await this.redisService.setWithPrefix(RedisKey.CONFIRM_EMAIL_TOKEN, token, email, REDIS_TTL.CONFIRM_EMAIL_TOKEN);
 
     try {
       const subject = "Confirmez votre compte";
@@ -65,7 +74,7 @@ export class MailerService {
       await this.sendMail(email, subject, html);
     } catch (error) {
       this.logger.error(`Failed to send confirmation email to ${email}: ${error}`);
-      await this.repository.deleteConfirmToken(token);
+      await this.redisService.delWithPrefix(RedisKey.CONFIRM_EMAIL_TOKEN, token);
       throw new Error(`Failed to send confirmation email: ${error}`);
     }
   }
@@ -74,7 +83,12 @@ export class MailerService {
    * Generate and store token (for external use)
    */
   async generateAndStoreToken(email: string): Promise<string> {
-    return this.repository.generateAndStoreConfirmToken(email);
+    const token = randomUUID();
+
+    // Store hash with expiration
+    await this.redisService.setWithPrefix(RedisKey.CONFIRM_EMAIL_TOKEN, token, email, REDIS_TTL.CONFIRM_EMAIL_TOKEN);
+
+    return token;
   }
 
   /**

@@ -3,12 +3,14 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { AuthRepository } from "src/auth/repository/auth.repository";
 import { AuthService } from "src/auth/services/auth.service";
 import { MailerService } from "src/mailer/services/mailer.service";
+import { RedisService } from "src/redis/redis.module";
 import { UsersService } from "src/users/services/users.service";
 
 describe("AuthService - validate2FA (TI)", () => {
   let service: AuthService;
   let mockAuthRepository: jest.Mocked<AuthRepository>;
   let mockUsersService: jest.Mocked<UsersService>;
+  let mockRedisService: jest.Mocked<RedisService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -17,10 +19,8 @@ describe("AuthService - validate2FA (TI)", () => {
         {
           provide: AuthRepository,
           useValue: {
-            getUserIdFromTempToken: jest.fn(),
             get2FACode: jest.fn(),
             delete2FACode: jest.fn(),
-            deleteTempToken: jest.fn(),
           },
         },
         {
@@ -33,12 +33,19 @@ describe("AuthService - validate2FA (TI)", () => {
           provide: MailerService,
           useValue: {},
         },
+        {
+          provide: RedisService,
+          useValue: {
+            getWithPrefix: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
     mockAuthRepository = module.get(AuthRepository);
     mockUsersService = module.get(UsersService);
+    mockRedisService = module.get(RedisService);
   });
 
   afterEach(() => {
@@ -61,7 +68,7 @@ describe("AuthService - validate2FA (TI)", () => {
       updatedAt: new Date(),
     };
 
-    mockAuthRepository.getUserIdFromTempToken.mockResolvedValue(userId);
+    mockRedisService.getWithPrefix.mockResolvedValue(userId);
     mockAuthRepository.get2FACode.mockResolvedValue("12345678");
     mockUsersService.findById.mockResolvedValue(mockUser);
 
@@ -70,13 +77,12 @@ describe("AuthService - validate2FA (TI)", () => {
     expect(result).toHaveProperty("accessToken");
     expect(result).toHaveProperty("refreshToken");
     expect(mockAuthRepository.delete2FACode).toHaveBeenCalledWith(userId);
-    expect(mockAuthRepository.deleteTempToken).toHaveBeenCalledWith(mockDto.tempToken);
   });
 
   it("devrait échouer si le tempToken est invalide", async () => {
     const mockDto = { tempToken: "invalid-token", code: "12345678" };
 
-    mockAuthRepository.getUserIdFromTempToken.mockResolvedValue(null);
+    mockRedisService.getWithPrefix.mockResolvedValue(null);
 
     await expect(service.validate2FA(mockDto)).rejects.toThrow(UnauthorizedException);
     await expect(service.validate2FA(mockDto)).rejects.toThrow("Token temporaire invalide ou expiré");
@@ -86,7 +92,7 @@ describe("AuthService - validate2FA (TI)", () => {
     const mockDto = { tempToken: "temp-token", code: "99999999" };
     const userId = "user-id-123";
 
-    mockAuthRepository.getUserIdFromTempToken.mockResolvedValue(userId);
+    mockRedisService.getWithPrefix.mockResolvedValue(userId);
     mockAuthRepository.get2FACode.mockResolvedValue("12345678");
 
     await expect(service.validate2FA(mockDto)).rejects.toThrow(UnauthorizedException);
@@ -97,7 +103,7 @@ describe("AuthService - validate2FA (TI)", () => {
     const mockDto = { tempToken: "temp-token", code: "12345678" };
     const userId = "user-id-123";
 
-    mockAuthRepository.getUserIdFromTempToken.mockResolvedValue(userId);
+    mockRedisService.getWithPrefix.mockResolvedValue(userId);
     mockAuthRepository.get2FACode.mockResolvedValue(null);
 
     await expect(service.validate2FA(mockDto)).rejects.toThrow(UnauthorizedException);
