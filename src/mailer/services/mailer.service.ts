@@ -118,4 +118,29 @@ export class MailerService {
   async registerEmail(email: string, firstName?: string): Promise<void> {
     await this.sendConfirmationEmail(email, firstName);
   }
+
+  /**
+   * Send reset password email with token
+   */
+  async sendResetPasswordEmail(email: string, token: string): Promise<void> {
+    const subject = "Réinitialisation de votre mot de passe";
+    const baseUrl = process.env.FRONTEND_URL ?? process.env.API_URL ?? "";
+    const path = "/reset-password";
+    const href = baseUrl ? `${baseUrl.replace(/\/$/, "")}${path}?token=${token}` : `${path}?token=${token}`;
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2>Réinitialisation de votre mot de passe</h2>
+        <p>Vous avez demandé à réinitialiser votre mot de passe.</p>
+        <p>Cliquez sur le lien ci-dessous pour définir un nouveau mot de passe :</p>
+        <p><a href="${href}" style="display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">Réinitialiser mon mot de passe</a></p>
+        <p>Si le lien ne fonctionne pas, copiez-collez l'URL suivante dans votre navigateur :</p>
+        <p><code>${href}</code></p>
+        <p><strong>Ce lien expirera dans 15 minutes.</strong></p>
+        <p>Si vous n'avez pas demandé cette réinitialisation, ignorez cet email. Votre mot de passe actuel reste inchangé.</p>
+      </div>
+    `;
+
+    await this.sendMail(email, subject, html);
+  }
 }

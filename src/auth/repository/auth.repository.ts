@@ -58,4 +58,10 @@ export class AuthRepository {
       data: { confirmedAt: new Date() },
     });
   }
+
+  // ========== Reset Password Token Management ==========
+
+  async storeResetPasswordToken(userId: string, token: string): Promise<void> {
+    await this.redisService.setWithPrefix(RedisKey.RESET_PASSWORD_TOKEN, token, userId, REDIS_TTL.RESET_PASSWORD_TOKEN);
+  }
 }

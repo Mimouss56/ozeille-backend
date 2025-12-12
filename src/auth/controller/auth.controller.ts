@@ -6,6 +6,7 @@ import { CreateUserDto } from "src/users/dto/create-user.dto";
 import { UsersService } from "src/users/services/users.service";
 
 import { EmailDto } from "../dto/email.dto";
+import { ForgotPasswordDto } from "../dto/forgot-password.dto";
 import { LoginResponseDto } from "../dto/login-response.dto";
 import { LoginDto } from "../dto/login.dto";
 import { Validate2FAResponseDto } from "../dto/validate-2fa-response.dto";
@@ -90,5 +91,28 @@ export class AuthController {
   })
   async validate2FA(@Body() validate2FADto: Validate2FADto): Promise<Validate2FAResponseDto> {
     return this.authService.validate2FA(validate2FADto);
+  }
+
+  @Post("forgot-password")
+  @ApiOkResponse({
+    description: "Si le compte existe, un email de réinitialisation a été envoyé",
+    schema: {
+      type: "object",
+      properties: {
+        message: {
+          type: "string",
+          example: "Si ce compte existe, un email a été envoyé",
+        },
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: "Validation failed",
+    type: ValidationErrorResponse,
+  })
+  @ApiResponse({ status: 503, description: "Internal Server Error." })
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto): Promise<{ message: string }> {
+    await this.authService.forgotPassword(forgotPasswordDto.email);
+    return { message: "Si ce compte existe, un email a été envoyé" };
   }
 }

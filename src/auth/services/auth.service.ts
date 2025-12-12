@@ -1,5 +1,6 @@
 import { Injectable, Logger, UnauthorizedException } from "@nestjs/common";
 import * as bcrypt from "bcrypt";
+import { randomUUID } from "crypto";
 import { MailerService } from "src/mailer/services/mailer.service";
 import { UsersService } from "src/users/services/users.service";
 
@@ -89,6 +90,31 @@ export class AuthService {
       this.logger.error(`Failed to confirm email for ${email}:`, error);
       return false;
     }
+  }
+
+  /**
+   * Request password reset - generates token and sends email
+   */
+  async forgotPassword(email: string): Promise<void> {
+    // Find user by email
+    const user = await this.usersService.findByEmail(email);
+
+    // Si l'utilisateur n'existe pas, on retourne quand même success (sécurité)
+    if (!user) {
+      this.logger.warn(`Password reset requested for non-existent email: ${email}`);
+      return; // On ne révèle pas que l'email n'existe pas
+    }
+
+    // Generate unique token (UUID)
+    const resetToken = randomUUID();
+
+    // Store token in Redis with userId
+    await this.repository.storeResetPasswordToken(user.id, resetToken);
+
+    // Send email with reset link
+    await this.mailerService.sendResetPasswordEmail(email, resetToken);
+
+    this.logger.log(`Password reset email sent to: ${email}`);
   }
 
   // ========== Private Methods ==========
