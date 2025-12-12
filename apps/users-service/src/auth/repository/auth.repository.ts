@@ -14,47 +14,53 @@ export class AuthRepository {
   ) {}
 
   // ========== 2FA Code Management ==========
+  private key2fa = "2fa";
+
   async store2FACode(userId: string, code: string): Promise<void> {
-    const key = `2fa:${userId}`;
+    const key = `${this.key2fa}:${userId}`;
     await this.redis.setex(key, this.CODE_2FA_TTL, code);
   }
 
   async get2FACode(userId: string): Promise<string | null> {
-    const key = `2fa:${userId}`;
+    const key = `${this.key2fa}:${userId}`;
     return this.redis.get(key);
   }
 
   async delete2FACode(userId: string): Promise<void> {
-    const key = `2fa:${userId}`;
+    const key = `${this.key2fa}:${userId}`;
     await this.redis.del(key);
   }
 
   // ========== Temp Token Management ==========
+  private keyTempToken = "temp-token";
+
   async storeTempToken(userId: string): Promise<string> {
     const tempToken = `tmp_${randomBytes(32).toString("hex")}`;
-    const key = `temp-token:${tempToken}`;
+    const key = `${this.keyTempToken}:${tempToken}`;
     await this.redis.setex(key, this.TEMP_TOKEN_TTL, userId);
     return tempToken;
   }
 
   async getUserIdFromTempToken(tempToken: string): Promise<string | null> {
-    const key = `temp-token:${tempToken}`;
+    const key = `${this.keyTempToken}:${tempToken}`;
     return this.redis.get(key);
   }
 
   async deleteTempToken(tempToken: string): Promise<void> {
-    const key = `temp-token:${tempToken}`;
+    const key = `${this.keyTempToken}:${tempToken}`;
     await this.redis.del(key);
   }
 
   // ========== Email Confirmation Token Management ==========
+  private keyConfirmEmailToken = "confirm-email-token";
+
   async getEmailFromConfirmToken(token: string): Promise<string | null> {
-    const key = `confirm-email-token:${token}`;
+    const key = `${this.keyConfirmEmailToken}:${token}`;
     return this.redis.get(key);
   }
 
   async deleteConfirmToken(token: string): Promise<void> {
-    const key = `confirm-email-token:${token}`;
+    const key = `${this.keyConfirmEmailToken}:${token}`;
     await this.redis.del(key);
   }
 

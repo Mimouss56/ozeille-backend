@@ -10,8 +10,6 @@ import { AuthRepository } from "../repository/auth.repository";
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-  private readonly JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
-  private readonly REFRESH_SECRET = process.env.REFRESH_SECRET || "your-refresh-secret";
 
   constructor(
     private readonly repository: AuthRepository,
