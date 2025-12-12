@@ -165,7 +165,7 @@ describe("POST /api/auth/2fa/validate (e2e)", () => {
         tempToken: tempToken,
         code: "99999999",
       })
-      .expect(400);
+      .expect(401);
 
     expect(response.body).toHaveProperty("message", "Validation failed");
   });
@@ -189,7 +189,7 @@ describe("POST /api/auth/2fa/validate (e2e)", () => {
         tempToken: tempToken,
         code: "12345678",
       })
-      .expect(400);
+      .expect(401);
 
     expect(response.body).toHaveProperty("message", "Validation failed");
   });
@@ -267,7 +267,7 @@ describe("POST /api/auth/2fa/validate (e2e)", () => {
         tempToken: tempToken,
         code: code,
       })
-      .expect(400);
+      .expect(401);
 
     expect(response.body).toHaveProperty("message", "Validation failed");
   });
