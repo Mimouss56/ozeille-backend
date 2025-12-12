@@ -1,6 +1,5 @@
 import { BadRequestException, Body, Controller, Post, Query } from "@nestjs/common";
 import { ApiBadRequestResponse, ApiOkResponse, ApiResponse, ApiUnauthorizedResponse } from "@nestjs/swagger";
-import { ZodSerializerDto } from "nestjs-zod";
 import { ValidationErrorResponse } from "src/common/dto/validation-error.dto";
 import { MailerService } from "src/mailer/services/mailer.service";
 import { CreateUserDto } from "src/users/dto/create-user.dto";
@@ -51,7 +50,6 @@ export class AuthController {
   }
 
   @Post("register")
-  @ZodSerializerDto(CreateUserDto)
   @ApiResponse({ status: 201, description: "The user has been successfully registered." })
   @ApiBadRequestResponse({
     description: "Validation failed",
@@ -63,7 +61,6 @@ export class AuthController {
   }
 
   @Post("login")
-  @ZodSerializerDto(LoginDto)
   @ApiOkResponse({
     description: "Connexion réussie. Un code 2FA a été envoyé par email et un token temporaire a été généré",
     type: LoginResponseDto,
@@ -80,7 +77,6 @@ export class AuthController {
   }
 
   @Post("2fa/validate")
-  @ZodSerializerDto(Validate2FADto)
   @ApiOkResponse({
     description: "Code 2FA vérifié avec succès. L'utilisateur est maintenant authentifié et reçoit ses tokens JWT.",
     type: Validate2FAResponseDto,

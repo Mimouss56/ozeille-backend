@@ -3,6 +3,7 @@ import * as bcrypt from "bcrypt";
 import { MailerService } from "src/mailer/services/mailer.service";
 import { UsersService } from "src/users/services/users.service";
 
+import { LoginResponseDto } from "../dto/login-response.dto";
 import { LoginDto } from "../dto/login.dto";
 import { Validate2FADto } from "../dto/validate-2fa.dto";
 import { AuthRepository } from "../repository/auth.repository";
@@ -20,7 +21,7 @@ export class AuthService {
   /**
    * Login: Validate credentials and generate 2FA code
    */
-  async login(loginDto: LoginDto): Promise<{ message: string; tempToken: string }> {
+  async login(loginDto: LoginDto): Promise<LoginResponseDto> {
     // Validate credentials
     const { userId } = await this.validateCredentials(loginDto.email, loginDto.password);
 
