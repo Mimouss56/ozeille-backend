@@ -8,6 +8,7 @@ export const ResetPasswordSchema = z
   })
   .refine((data) => data.password === data.confirmedPassword, {
     message: "Passwords don't match",
+    path: ["confirmedPassword"],
   });
 
 export class ResetPasswordDto extends createZodDto(ResetPasswordSchema) {}

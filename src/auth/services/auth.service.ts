@@ -85,7 +85,14 @@ export class AuthService {
     }
 
     try {
-      await this.usersService.confirmUserEmail(email);
+      // Find user by email to get userId
+      const user = await this.usersService.findByEmail(email);
+      if (!user) {
+        this.logger.error(`User not found for email: ${email}`);
+        return false;
+      }
+
+      await this.usersService.confirmUserEmail(user.id);
       await this.redisService.delWithPrefix(RedisKey.CONFIRM_EMAIL_TOKEN, token);
       this.logger.log(`Email confirmed successfully for: ${email}`);
       return true;

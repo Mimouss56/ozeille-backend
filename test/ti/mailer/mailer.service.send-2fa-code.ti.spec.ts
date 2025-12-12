@@ -1,6 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { MailerRepository } from "src/mailer/repository/mailer.repository";
 import { MailerService } from "src/mailer/services/mailer.service";
+import { RedisService } from "src/redis/redis.module";
 
 describe("MailerService - send2FACode (TI)", () => {
   let service: MailerService;
@@ -14,6 +15,14 @@ describe("MailerService - send2FACode (TI)", () => {
           provide: MailerRepository,
           useValue: {
             generateAndStoreConfirmToken: jest.fn(),
+          },
+        },
+        {
+          provide: RedisService,
+          useValue: {
+            setWithPrefix: jest.fn(),
+            getWithPrefix: jest.fn(),
+            delWithPrefix: jest.fn(),
           },
         },
       ],

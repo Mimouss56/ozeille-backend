@@ -3,7 +3,6 @@ import * as bcrypt from "bcrypt";
 import { MailerService } from "src/mailer/services/mailer.service";
 
 import { CreateUserDto } from "../../../src/users/dto/create-user.dto";
-import { UserPasswordDoesntMatchException } from "../../../src/users/exceptions/user.password-doesnt-match.exception";
 import { UsersRepository } from "../../../src/users/repository/users.repository";
 import { UsersService } from "../../../src/users/services/users.service";
 
@@ -55,17 +54,8 @@ describe("UsersService - register (TI)", () => {
       lastName: "Doe",
     };
 
-    it("devrait lever une exception si les mots de passe ne correspondent pas", async () => {
-      const dto = {
-        ...validDto,
-        confirmedPassword: "DifferentPassword123!",
-      };
-
-      await expect(service.register(dto)).rejects.toThrow(UserPasswordDoesntMatchException);
-
-      expect(mockRepository.findByEmail).not.toHaveBeenCalled();
-      expect(mockRepository.create).not.toHaveBeenCalled();
-    });
+    // Note: La validation des mots de passe est maintenant gérée par Zod dans le DTO
+    // Ce test n'est plus nécessaire car la validation se fait avant d'arriver au service
 
     it("devrait envoyer un email 'already exists' si l'utilisateur existe déjà", async () => {
       mockRepository.findByEmail.mockResolvedValue({

@@ -4,6 +4,7 @@ import { MailerService } from "src/mailer/services/mailer.service";
 
 import { CreateUserDto } from "../dto/create-user.dto";
 import { UserEntity } from "../entities/user.entity";
+import { UserPasswordDoesntMatchException } from "../exceptions/user.password-doesnt-match.exception";
 import { UsersRepository } from "../repository/users.repository";
 
 @Injectable()
@@ -19,6 +20,9 @@ export class UsersService {
    * Register a new user with email confirmation
    */
   async register(createUserDto: CreateUserDto): Promise<void> {
+    if (createUserDto.password !== createUserDto.confirmedPassword) {
+      throw new UserPasswordDoesntMatchException();
+    }
     const existingUser = await this.repository.findByEmail(createUserDto.email);
     if (existingUser) {
       await this.mailerService.sendAlreadyExistsEmail(createUserDto.email);

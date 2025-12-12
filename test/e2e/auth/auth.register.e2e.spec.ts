@@ -1,6 +1,8 @@
 import { HttpStatus, type INestApplication } from "@nestjs/common";
 import { Test, TestingModule } from "@nestjs/testing";
 import { AppModule } from "src/app.module";
+import { PrismaExceptionFilter } from "src/common/filters/prisma-exception.filter";
+import { ZodValidationExceptionFilter } from "src/common/filters/validation.filter";
 import { PrismaService } from "src/prisma/prisma.service";
 import request from "supertest";
 
@@ -22,6 +24,10 @@ describe("POST /api/auth/register (e2e)", () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+
+    // Ajoute les filtres globaux comme dans main.ts
+    app.useGlobalFilters(new ZodValidationExceptionFilter(), new PrismaExceptionFilter());
+
     await app.init();
 
     prisma = moduleFixture.get<PrismaService>(PrismaService);
