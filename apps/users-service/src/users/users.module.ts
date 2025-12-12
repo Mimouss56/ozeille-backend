@@ -2,14 +2,14 @@ import { Module } from "@nestjs/common";
 import { MailerModule } from "src/mailer/mailer.module";
 
 import { PrismaService } from "../prisma/prisma.service";
-import { UserUsecaseCreate } from "./usecases/user.usecase.create";
-import { UserUsecaseFind } from "./usecases/user.usecase.find-by";
-import { UsersUsecaseRegister } from "./usecases/users.usecase.register";
+import { UsersController } from "./controller/users.controller";
+import { UsersRepository } from "./repository/users.repository";
+import { UsersService } from "./services/users.service";
 
 @Module({
-  controllers: [],
+  controllers: [UsersController],
   imports: [MailerModule],
-  providers: [UsersUsecaseRegister, UserUsecaseFind, UserUsecaseCreate, PrismaService],
-  exports: [UserUsecaseFind, UsersUsecaseRegister],
+  providers: [UsersService, UsersRepository, PrismaService],
+  exports: [UsersService],
 })
 export class UsersModule {}

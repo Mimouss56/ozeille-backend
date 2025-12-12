@@ -1,27 +1,14 @@
 import { Module } from "@nestjs/common";
-import { ConfigModule, ConfigService } from "@nestjs/config";
-import Redis from "ioredis";
-import { PrismaService } from "src/prisma/prisma.service";
-import { UserUsecaseFind } from "src/users/usecases/user.usecase.find-by";
+import { ConfigModule } from "@nestjs/config";
+import { RedisModule } from "src/redis/redis.module";
 
-import { AuthUsecaseVerifyConfirmation } from "../auth/usecases/auth.usecase.verify-confirmation";
-import { MailerAlreadyExistUsecase } from "./usecase/mailer.usecase.already-exist";
-import { MailerUsecaseConfirmEmail } from "./usecase/mailer.usecase.confirm-email";
-import { MailerUsecaseSendMail } from "./usecase/mailer.usecase.send-mail";
+import { MailerRepository } from "./repository/mailer.repository";
+import { MailerService } from "./services/mailer.service";
 
 @Module({
-  imports: [ConfigModule],
-  providers: [
-    MailerAlreadyExistUsecase,
-    MailerUsecaseSendMail,
-    MailerUsecaseConfirmEmail,
-    AuthUsecaseVerifyConfirmation,
-    UserUsecaseFind,
-    PrismaService,
-    ConfigService,
-    Redis,
-  ],
+  imports: [ConfigModule, RedisModule],
+  providers: [MailerService, MailerRepository],
   controllers: [],
-  exports: [MailerAlreadyExistUsecase, MailerUsecaseConfirmEmail, AuthUsecaseVerifyConfirmation],
+  exports: [MailerService],
 })
 export class MailerModule {}
