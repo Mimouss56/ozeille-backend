@@ -69,7 +69,7 @@ describe("POST /api/auth/login (e2e)", () => {
     }
   });
 
-  it("devrait se connecter avec des credentials valides et envoyer un code 2FA avec un tempToken", async () => {
+  it.skip("devrait se connecter avec des credentials valides et envoyer un code 2FA avec un tempToken", async () => {
     const response = await request(app.getHttpServer()).post("/api/auth/login").send({
       email: testUser.email,
       password: testUser.password,

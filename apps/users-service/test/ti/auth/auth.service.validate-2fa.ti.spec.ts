@@ -1,9 +1,9 @@
 import { UnauthorizedException } from "@nestjs/common";
 import { Test, TestingModule } from "@nestjs/testing";
-import { AuthService } from "src/auth/services/auth.service";
 import { AuthRepository } from "src/auth/repository/auth.repository";
-import { UsersService } from "src/users/services/users.service";
+import { AuthService } from "src/auth/services/auth.service";
 import { MailerService } from "src/mailer/services/mailer.service";
+import { UsersService } from "src/users/services/users.service";
 
 describe("AuthService - validate2FA (TI)", () => {
   let service: AuthService;
