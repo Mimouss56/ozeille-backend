@@ -101,7 +101,7 @@ describe("POST /api/auth/2fa/validate (e2e)", () => {
     await prisma.user.deleteMany({ where: { email: testUser.email } });
   });
 
-  it.skip("devrait valider le code 2FA avec le tempToken et retourner les tokens JWT", async () => {
+  it("devrait valider le code 2FA avec le tempToken et retourner les tokens JWT", async () => {
     const loginResponse = await request(app.getHttpServer()).post("/api/auth/login").send({
       email: testUser.email,
       password: testUser.password,
@@ -240,7 +240,7 @@ describe("POST /api/auth/2fa/validate (e2e)", () => {
     expect(response.body).toHaveProperty("message");
   });
 
-  it.skip("ne devrait pas permettre la réutilisation d'un tempToken", async () => {
+  it("ne devrait pas permettre la réutilisation d'un tempToken", async () => {
     const loginResponse = await request(app.getHttpServer()).post("/api/auth/login").send({
       email: testUser.email,
       password: testUser.password,
