@@ -27,3 +27,6 @@ import { RedisService } from "./services/redis.service";
   exports: [Redis, RedisService],
 })
 export class RedisModule {}
+
+export { RedisKey } from "./entities/redis-key.entity";
+export { RedisService } from "./services/redis.service";
