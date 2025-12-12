@@ -102,7 +102,7 @@ export class AuthService {
     // Si l'utilisateur n'existe pas, on retourne quand même success (sécurité)
     if (!user) {
       this.logger.warn(`Password reset requested for non-existent email: ${email}`);
-      return; // On ne révèle pas que l'email n'existe pas
+      return;
     }
 
     // Generate unique token (UUID)
