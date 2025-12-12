@@ -59,7 +59,7 @@ paths:
 - PostgreSQL : 17-alpine (au lieu de 15-alpine)
 - Redis : 8-alpine (au lieu de 7-alpine)
 - Working directory : racine au lieu de `apps/${{ inputs.service }}`
-- Installation : `npm ci --legacy-peer-deps`
+- Installation : `npm ci`
 - Tests par module individuel
 
 **Services Docker** :
@@ -73,7 +73,7 @@ redis:
 #### 3. `pr-checks.yml`
 **Changements** :
 - Détection des modules dans `src/<module>/` directement
-- Un seul `npm ci --legacy-peer-deps` à la racine
+- Un seul `npm ci` à la racine
 - Un seul Prisma generate/migrate
 - Tests par module avec variables d'environnement DATABASE_URL et REDIS_*
 - Cleanup de PostgreSQL et Redis

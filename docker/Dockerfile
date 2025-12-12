@@ -20,12 +20,12 @@ CMD sh /usr/script/entrypoint.sh
 FROM base AS prod-deps
 COPY --chown=node:node package.json .
 COPY --chown=node:node package-lock.json .
-RUN npm install --prod --legacy-peer-deps
+RUN npm install --prod
 
 # --- Build app for prod ---
 FROM base AS build
 COPY --chown=node:node . .
-RUN npm install --legacy-peer-deps
+RUN npm install
 RUN npm run build
 
 # --- Build final --

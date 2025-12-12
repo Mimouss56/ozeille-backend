@@ -202,7 +202,7 @@ docker-compose up
 
 ```bash
 # Installer les dépendances
-npm install --legacy-peer-deps
+npm install
 
 # Générer le client Prisma
 npm run prisma:generate
