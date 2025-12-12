@@ -71,6 +71,7 @@ export class TransactionsRepository {
   }
 
   updateOne(id: string, transaction: UpdateTransactionRequest): Promise<Transaction> {
+    // eslint-disable-next-line unused-imports/no-unused-vars
     const { categoryId, frequencyId, ...rest } = transaction;
 
     return this.prisma.transaction.update({

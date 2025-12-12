@@ -99,6 +99,13 @@ jobs:
             -d redis:8-alpine
           echo "Redis ready"
 
+          # Start Mailpit for email tests
+          echo "Starting Mailpit for tests"
+          docker run --name mailpit_test_ci \
+            -p 1025:1025 \
+            -d axllent/mailpit:v1.27
+          echo "Mailpit ready"
+
           # Install dependencies
           npm ci
 
@@ -120,6 +127,8 @@ jobs:
               env DATABASE_URL="postgresql://postgres:postgres@localhost:5432/testdb" \
                 REDIS_HOST=localhost \
                 REDIS_PORT=6379 \
+                MAILER_HOST=localhost \
+                MAILER_PORT=1025 \
                 npx jest --testPathPattern="test/ti/$mod/.*\.ti\.spec\.ts" --runInBand || true
             fi
             
@@ -129,6 +138,8 @@ jobs:
               env DATABASE_URL="postgresql://postgres:postgres@localhost:5432/testdb" \
                 REDIS_HOST=localhost \
                 REDIS_PORT=6379 \
+                MAILER_HOST=localhost \
+                MAILER_PORT=1025 \
                 npx jest --config ./jest-e2e.json --testPathPattern="test/e2e/$mod/.*\.e2e\.spec\.ts" --runInBand || true
             fi
           done
@@ -137,6 +148,7 @@ jobs:
           echo "Cleaning up containers"
           docker rm -f postgres_test_ci || true
           docker rm -f redis_test_ci || true
+          docker rm -f mailpit_test_ci || true
 
       - name: Build application
         run: npm run build || true

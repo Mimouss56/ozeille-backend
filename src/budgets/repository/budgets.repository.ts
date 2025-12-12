@@ -12,7 +12,7 @@ export class BudgetsRepository {
   async getAll(): Promise<Budget[]> {
     return this.prisma.budget.findMany({
       include: { categories: true },
-      orderBy: { label: 'asc' } // Trier par label par ordre alphabétique
+      orderBy: { label: "asc" }, // Trier par label par ordre alphabétique
     });
   }
 
@@ -21,9 +21,9 @@ export class BudgetsRepository {
   }
 
   getById(id: string): Promise<Budget | null> {
-    return this.prisma.budget.findUnique({ 
+    return this.prisma.budget.findUnique({
       where: { id },
-      include: { categories: true } 
+      include: { categories: true },
     });
   }
 

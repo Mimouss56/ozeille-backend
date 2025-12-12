@@ -10,14 +10,17 @@ export class MailerService {
 
   constructor(private readonly repository: MailerRepository) {
     this.transporter = createTransport({
-      host: "localhost", // e.g., smtp.gmail.com
-      port: 1025,
-      secure: false, // true for 465, false for other ports
-      auth: {
-        user: "ozeille",
-        pass: "ozeille",
-      },
-      from: "no-reply@example.com",
+      host: process.env.MAILER_HOST ?? "localhost",
+      port: parseInt(process.env.MAILER_PORT ?? "1025", 10),
+      secure: false,
+      auth:
+        process.env.MAILER_USER && process.env.MAILER_PASSWORD
+          ? {
+              user: process.env.MAILER_USER,
+              pass: process.env.MAILER_PASSWORD,
+            }
+          : undefined,
+      from: process.env.MAILER_FROM ?? "no-reply@lapince.com",
     });
   }
 

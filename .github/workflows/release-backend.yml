@@ -44,6 +44,14 @@ jobs:
             -d redis:8-alpine
           sleep 2
 
+      - name: Start Mailpit for tests
+        run: |
+          docker run --name mailpit_ci \
+            -p 1025:1025 \
+            -p 8025:8025 \
+            -d axllent/mailpit:v1.27
+          sleep 2
+
       - name: Install dependencies
         run: npm ci
 
@@ -55,3 +63,6 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
           REDIS_HOST: localhost
           REDIS_PORT: 6379
+          MAILER_HOST: localhost
+          MAILER_PORT: 1025
+          NODE_ENV: test

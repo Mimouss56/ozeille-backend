@@ -14,7 +14,7 @@ export const createCategorySchema = categorySchema
   .required();
 
 export const createCategoryRequestSchema = createCategorySchema.extend({
-    limitAmount: z.number().min(0).optional().default(0)
+  limitAmount: z.number().min(0).optional().default(0),
 });
 
 export type CreateCategoryDto = z.infer<typeof createCategoryRequestSchema>;
