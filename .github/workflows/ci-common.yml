@@ -3,54 +3,50 @@ name: CI Common - Module-Specific Tests
 on:
   workflow_call:
     inputs:
-      service:
-        description: "Service name (e.g., users-service, transactions-service)"
+      module:
+        description: "Module name to test (e.g., users, auth, transactions)"
         required: true
         type: string
-      modules:
-        description: "Comma-separated list of modules to test (or 'all' for full suite)"
-        required: false
-        type: string
-        default: "all"
       node-version:
         description: "Node.js version"
         required: false
         type: string
-        default: "24"
+        default: "22"
 
 jobs:
   detect-and-test:
-    name: Test ${{ inputs.service }}
+    name: Test ${{ inputs.module }}
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:15-alpine
+        image: postgres:17-alpine
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: test_db
         options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
         ports:
           - 5432:5432
 
       redis:
-        image: redis:7-alpine
+        image: redis:8-alpine
         options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
         ports:
           - 6379:6379
 
+      mailpit:
+        image: axllent/mailpit:v1.27
+        ports:
+          - 1025:1025
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
       REDIS_HOST: localhost
       REDIS_PORT: 6379
+      MAILER_HOST: localhost
+      MAILER_PORT: 1025
+      NODE_ENV: test
 
     steps:
       - name: Checkout code
@@ -68,63 +64,46 @@ jobs:
         with:
           path: |
             ~/.npm
-            apps/${{ inputs.service }}/node_modules
-          key: ${{ runner.os }}-node-${{ inputs.node-version }}-${{ inputs.service }}-${{ hashFiles(format('apps/{0}/package-lock.json', inputs.service)) }}
+            node_modules
+          key: ${{ runner.os }}-node-${{ inputs.node-version }}-${{ hashFiles('package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-node-${{ inputs.node-version }}-${{ inputs.service }}-
+            ${{ runner.os }}-node-${{ inputs.node-version }}-
 
       - name: Install dependencies
-        working-directory: apps/${{ inputs.service }}
         run: npm ci
 
       - name: Generate Prisma Client
-        working-directory: apps/${{ inputs.service }}
         run: |
           if [ -f "prisma/schema.prisma" ]; then
             npx prisma generate
             npx prisma migrate deploy || echo "No migrations to run"
           fi
 
-      - name: Run Lint for modules
-        working-directory: apps/${{ inputs.service }}
+      - name: Run Lint for module
         run: |
-          IFS=',' read -ra MODS <<< "${{ inputs.modules }}"
-          for mod in "${MODS[@]}"; do
-            echo "::group::Linting module: $mod"
-            npx eslint "src/$mod/**/*.ts" --max-warnings=0 || true
+          echo "::group::Linting module: ${{ inputs.module }}"
+          npx eslint "src/${{ inputs.module }}/**/*.ts" --max-warnings=0 || true
+          echo "::endgroup::"
+
+      - name: Run TI Tests for module
+        run: |
+          if [ -d "test/ti/${{ inputs.module }}" ]; then
+            echo "::group::Running TI tests for module: ${{ inputs.module }}"
+            npx jest --testPathPattern="test/ti/${{ inputs.module }}/.*\.ti\.spec\.ts" --runInBand
             echo "::endgroup::"
-          done
+          else
+            echo "ℹ️ No TI tests found for module ${{ inputs.module }}"
+          fi
 
-      - name: Run TI Tests sequentially
-        working-directory: apps/${{ inputs.service }}
+      - name: Run E2E Tests for module
         run: |
-          IFS=',' read -ra MODS <<< "${{ inputs.modules }}"
-          for mod in "${MODS[@]}"; do
-            if [ -d "test/ti/$mod" ]; then
-              echo "::group::Running TI tests for module: $mod"
-              npx prisma generate
-              npx jest --config ./jest-e2e.json --testPathPattern="test/ti/$mod/.*\.ti\.spec\.ts" --runInBand
-              echo "::endgroup::"
-            else
-              echo "ℹ️ No TI tests found for module $mod"
-            fi
-          done
-
-      - name: Run E2E Tests sequentially
-        working-directory: apps/${{ inputs.service }}
-        run: |
-          IFS=',' read -ra MODS <<< "${{ inputs.modules }}"
-          for mod in "${MODS[@]}"; do
-            if [ -d "test/e2e/$mod" ]; then
-              echo "::group::Running E2E tests for module: $mod"
-              npx prisma generate
-              npx jest --config ./jest-e2e.json --testPathPattern="test/e2e/$mod/.*\.e2e\.spec\.ts" --runInBand
-              echo "::endgroup::"
-            else
-              echo "ℹ️ No E2E tests found for module $mod"
-            fi
-          done
+          if [ -d "test/e2e/${{ inputs.module }}" ]; then
+            echo "::group::Running E2E tests for module: ${{ inputs.module }}"
+            npx jest --config ./jest-e2e.json --testPathPattern="test/e2e/${{ inputs.module }}/.*\.e2e\.spec\.ts" --runInBand
+            echo "::endgroup::"
+          else
+            echo "ℹ️ No E2E tests found for module ${{ inputs.module }}"
+          fi
 
       - name: Build
-        working-directory: apps/${{ inputs.service }}
         run: npm run build
