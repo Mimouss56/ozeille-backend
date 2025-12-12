@@ -4,8 +4,10 @@ on:
   pull_request:
     branches: [develop]
     paths:
-      - "apps/**"
-      - ".github/workflows/pr-module-tests.yml"
+      - "src/**"
+      - "test/**"
+      - "prisma/**"
+      - ".github/workflows/pr-modules-tests.yml"
       - ".github/workflows/ci-common.yml"
 
 permissions:
@@ -18,7 +20,7 @@ jobs:
     name: Detect Changed Modules
     runs-on: ubuntu-latest
     outputs:
-      services-matrix: ${{ steps.detect.outputs.services-matrix }}
+      modules-matrix: ${{ steps.detect.outputs.modules-matrix }}
       has-changes: ${{ steps.detect.outputs.has-changes }}
     steps:
       - name: Checkout
@@ -26,7 +28,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Detect changed services and modules
+      - name: Detect changed modules
         id: detect
         shell: bash
         run: |
@@ -41,132 +43,59 @@ jobs:
           echo "All changed files:"
           echo "$ALL_CHANGED_FILES"
 
-          # Get changed files in apps/<service>/src only
-          CHANGED_SRC_FILES=$(echo "$ALL_CHANGED_FILES" | grep "^apps/.*/src/" || true)
+          # Get changed files in src/ only
+          CHANGED_SRC_FILES=$(echo "$ALL_CHANGED_FILES" | grep "^src/" || true)
 
           if [ -z "$CHANGED_SRC_FILES" ]; then
-            echo "No changes in apps/*/src/"
+            echo "No changes in src/"
             echo "has-changes=false" >> $GITHUB_OUTPUT
-            echo "services-matrix={\"include\":[]}" >> $GITHUB_OUTPUT
+            echo "modules-matrix={\"include\":[]}" >> $GITHUB_OUTPUT
             exit 0
           fi
 
           echo "Changed source files:"
           echo "$CHANGED_SRC_FILES"
 
-          # Build services and modules map
-          declare -A SERVICE_MODULES
+          # Build modules list
+          declare -A MODULES
 
           while IFS= read -r file; do
-            # Match: apps/<service>/src/<module>/...
-            if [[ $file =~ ^apps/([^/]+)/src/([^/]+)/ ]]; then
-              service="${BASH_REMATCH[1]}"
-              module="${BASH_REMATCH[2]}"
-              
-              # Add module to service's list (unique)
-              if [ -z "${SERVICE_MODULES[$service]:-}" ]; then
-                SERVICE_MODULES[$service]="$module"
-              else
-                # Check if module already in list
-                if ! echo "${SERVICE_MODULES[$service]}" | grep -qw "$module"; then
-                  SERVICE_MODULES[$service]="${SERVICE_MODULES[$service]},$module"
-                fi
+            # Match: src/<module>/...
+            if [[ $file =~ ^src/([^/]+)/ ]]; then
+              module="${BASH_REMATCH[1]}"
+              # Skip common, generated, and non-module files
+              if [[ "$module" != "common" && "$module" != "generated" && "$module" != "app.module.ts" && "$module" != "main.ts" ]]; then
+                MODULES[$module]=1
               fi
             fi
           done <<< "$CHANGED_SRC_FILES"
 
           # Build JSON matrix
           MATRIX_ITEMS=()
-          for service in "${!SERVICE_MODULES[@]}"; do
-            modules="${SERVICE_MODULES[$service]}"
-            echo "Service: $service, Modules: $modules"
-            MATRIX_ITEMS+=("{\"service\":\"$service\",\"modules\":\"$modules\"}")
+          for module in "${!MODULES[@]}"; do
+            echo "Module: $module"
+            MATRIX_ITEMS+=("{\"module\":\"$module\"}")
           done
 
           if [ ${#MATRIX_ITEMS[@]} -eq 0 ]; then
             echo "has-changes=false" >> $GITHUB_OUTPUT
-            echo "services-matrix={\"include\":[]}" >> $GITHUB_OUTPUT
+            echo "modules-matrix={\"include\":[]}" >> $GITHUB_OUTPUT
           else
             echo "has-changes=true" >> $GITHUB_OUTPUT
             MATRIX_JSON="{\"include\":[$(IFS=,; echo "${MATRIX_ITEMS[*]}")]}"
-            echo "services-matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
+            echo "modules-matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
             echo "Generated matrix: $MATRIX_JSON"
           fi
 
   test-modules:
-    name: Test ${{ matrix.service }}
+    name: Test ${{ matrix.module }}
     needs: detect-changes
     if: needs.detect-changes.outputs.has-changes == 'true'
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.detect-changes.outputs.services-matrix) }}
-
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: testdb
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-    env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Cache npm dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-npm-${{ matrix.service }}-${{ hashFiles(format('apps/{0}/package-lock.json', matrix.service)) }}
-          restore-keys: |
-            ${{ runner.os }}-npm-${{ matrix.service }}-
-
-      - name: Install dependencies
-        working-directory: apps/${{ matrix.service }}
-        run: npm ci
-
-      - name: Generate Prisma Client
-        working-directory: apps/${{ matrix.service }}
-        run: |
-          if [ -f "prisma/schema.prisma" ]; then
-            npx prisma generate
-            npx prisma migrate deploy || echo "No migrations to run"
-          fi
-
-      - name: Lint modules
-        working-directory: apps/${{ matrix.service }}
-        run: |
-          IFS=',' read -ra MODS <<< "${{ matrix.modules }}"
-          for mod in "${MODS[@]}"; do
-            echo "::group::Linting module: $mod"
-            npx eslint "src/$mod/**/*.ts" --max-warnings=0 || true
-            echo "::endgroup::"
-          done
-
-      - name: Test modules
-        working-directory: apps/${{ matrix.service }}
-        run: |
-          IFS=',' read -ra MODS <<< "${{ matrix.modules }}"
-          for mod in "${MODS[@]}"; do
-            echo "::group::Testing module: $mod"
-            npm test -- --testPathPattern="src/$mod" --passWithNoTests || true
-            echo "::endgroup::"
-          done
+      matrix: ${{ fromJson(needs.detect-changes.outputs.modules-matrix) }}
+    uses: ./.github/workflows/ci-common.yml
+    with:
+      module: ${{ matrix.module }}
+      node-version: "22"
+    secrets: inherit

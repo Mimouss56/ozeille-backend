@@ -28,7 +28,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.npm
-          key: ${{ runner.os }}-npm-${{ hashFiles('apps/*/package-lock.json') }}
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-npm-
 
@@ -46,117 +46,100 @@ jobs:
           DIFF=$(git diff --name-only origin/develop...HEAD || true)
           echo "Changed paths:\n$DIFF"
 
-          SERVICES_DIR="apps"
-          # associative array already initialized above
+          declare -A MODULES
 
-          # Find services that have changes and the specific modules under src
+          # Find modules that have changes
           while IFS= read -r path; do
-            # match apps/<service>/src/<module>/...
-            if [[ $path =~ ^apps/([^/]+)/src/([^/]+)/ ]]; then
-              svc=${BASH_REMATCH[1]}
-              mod=${BASH_REMATCH[2]}
-              SERVICE_MODULES["$svc"]+="$mod "
-            else
-              # if change anywhere under service, mark service for full run
-              if [[ $path =~ ^apps/([^/]+)/ ]]; then
-                svc=${BASH_REMATCH[1]}
-                SERVICE_MODULES["$svc"]+="__ALL__ "
+            # match src/<module>/...
+            if [[ $path =~ ^src/([^/]+)/ ]]; then
+              mod=${BASH_REMATCH[1]}
+              # Skip common and generated directories
+              if [[ "$mod" != "common" && "$mod" != "generated" ]]; then
+                MODULES["$mod"]=1
               fi
             fi
           done <<< "$DIFF"
 
-          # If no service changes found, run checks for all services
-          if [ ${#SERVICE_MODULES[@]} -eq 0 ]; then
-            echo "No service-specific changes detected — scheduling all services"
-            for d in "$SERVICES_DIR"/*; do
+          # If no module changes found, run checks for all modules
+          if [ ${#MODULES[@]} -eq 0 ]; then
+            echo "No module-specific changes detected — scheduling all modules"
+            for d in src/*/; do
               [ -d "$d" ] || continue
-              svc=$(basename "$d")
-              SERVICE_MODULES["$svc"]+="__ALL__ "
-            done
-          fi
-
-          echo "Services and modules to run:" 
-          for svc in "${!SERVICE_MODULES[@]}"; do
-            echo "- $svc : ${SERVICE_MODULES[$svc]}"
-          done
-
-          # Start PostgreSQL once if transactions-service needs testing
-          POSTGRES_STARTED=0
-          if [[ -v SERVICE_MODULES["transactions-service"] ]]; then
-            echo "Starting PostgreSQL for transactions-service tests"
-            docker run --name postgres_test_ci \
-              -e POSTGRES_PASSWORD=postgres \
-              -e POSTGRES_USER=postgres \
-              -e POSTGRES_DB=testdb \
-              -p 5432:5432 \
-              -d postgres:15-alpine
-            
-            until docker exec postgres_test_ci pg_isready -U postgres >/dev/null 2>&1; do
-              echo "Waiting for Postgres..."
-              sleep 1
-            done
-            POSTGRES_STARTED=1
-            echo "PostgreSQL ready"
-          fi
-
-          # Run checks per service/module
-          for svc in "${!SERVICE_MODULES[@]}"; do
-            mods=${SERVICE_MODULES[$svc]}
-            svcdir="$SERVICES_DIR/$svc"
-            echo "\n--- Running checks for service: $svc (modules: $mods) ---"
-              if [ -f "$svcdir/package.json" ]; then
-                (cd "$svcdir" && npm ci)
-                # Check if this service needs DB
-                NEED_DB=0
-                if [ "$svc" = "transactions-service" ]; then
-                  NEED_DB=1
-                fi
-
-                # Setup Prisma if DB is available
-                if [ "$NEED_DB" -eq 1 ] && [ "$POSTGRES_STARTED" -eq 1 ]; then
-                  export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/testdb"
-                  if [ -f "$svcdir/prisma/schema.prisma" ] || [ -d "$svcdir/prisma/migrations" ]; then
-                    (cd "$svcdir" && npx prisma generate) || true
-                    (cd "$svcdir" && npx prisma migrate deploy --schema=prisma/schema.prisma) || true
-                  fi
-                fi
-
-                # if __ALL__ present, run full lint/test
-                if echo "$mods" | grep -q "__ALL__"; then
-                  (cd "$svcdir" && npm run lint --if-present) || true
-                  if [ "$NEED_DB" -eq 1 ] && [ "$POSTGRES_STARTED" -eq 1 ]; then
-                    (cd "$svcdir" && env DATABASE_URL="$DATABASE_URL" npm test --if-present) || true
-                  else
-                    (cd "$svcdir" && npm test --if-present) || true
-                  fi
-                else
-                  # Run lint and tests only for changed modules
-                  for mod in $mods; do
-                    echo "Running lint for module: $mod"
-                    (cd "$svcdir" && npx eslint "src/$mod/**" --ext .ts) || true
-                    echo "Running tests for module: $mod"
-                    if [ "$NEED_DB" -eq 1 ] && [ "$POSTGRES_STARTED" -eq 1 ]; then
-                      (cd "$svcdir" && env DATABASE_URL="$DATABASE_URL" npm test -- --testPathPattern="$mod") || true
-                    else
-                      (cd "$svcdir" && npm test -- --testPathPattern="$mod") || true
-                    fi
-                  done
-                fi
-              else
-                echo "No package.json for $svc — skipping npm steps"
+              mod=$(basename "$d")
+              if [[ "$mod" != "common" && "$mod" != "generated" ]]; then
+                MODULES["$mod"]=1
               fi
-          done
-
-          # Cleanup PostgreSQL
-          if [ "$POSTGRES_STARTED" -eq 1 ]; then
-            echo "Cleaning up PostgreSQL container"
-            docker rm -f postgres_test_ci || true
+            done
           fi
 
-      - name: Run affected tests
-        run: |
-          # Placeholder: run tests only for changed packages or modules
-          echo "Running affected tests (implement for monorepo)"
+          echo "Modules to run:" 
+          for mod in "${!MODULES[@]}"; do
+            echo "- $mod"
+          done
+
+          # Start PostgreSQL for all tests
+          echo "Starting PostgreSQL for tests"
+          docker run --name postgres_test_ci \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_USER=postgres \
+            -e POSTGRES_DB=testdb \
+            -p 5432:5432 \
+            -d postgres:17-alpine
+
+          until docker exec postgres_test_ci pg_isready -U postgres >/dev/null 2>&1; do
+            echo "Waiting for Postgres..."
+            sleep 1
+          done
+          echo "PostgreSQL ready"
+
+          # Start Redis for all tests
+          echo "Starting Redis for tests"
+          docker run --name redis_test_ci \
+            -p 6379:6379 \
+            -d redis:8-alpine
+          echo "Redis ready"
+
+          # Install dependencies
+          npm ci
+
+          # Generate Prisma Client
+          npx prisma generate || true
+          npx prisma migrate deploy || true
+
+          # Run checks per module
+          for mod in "${!MODULES[@]}"; do
+            echo "\n--- Running checks for module: $mod ---"
+            
+            # Lint
+            echo "Running lint for module: $mod"
+            npx eslint "src/$mod/**/*.ts" --max-warnings=0 || true
+            
+            # TI Tests
+            if [ -d "test/ti/$mod" ]; then
+              echo "Running TI tests for module: $mod"
+              env DATABASE_URL="postgresql://postgres:postgres@localhost:5432/testdb" \
+                REDIS_HOST=localhost \
+                REDIS_PORT=6379 \
+                npx jest --testPathPattern="test/ti/$mod/.*\.ti\.spec\.ts" --runInBand || true
+            fi
+            
+            # E2E Tests
+            if [ -d "test/e2e/$mod" ]; then
+              echo "Running E2E tests for module: $mod"
+              env DATABASE_URL="postgresql://postgres:postgres@localhost:5432/testdb" \
+                REDIS_HOST=localhost \
+                REDIS_PORT=6379 \
+                npx jest --config ./jest-e2e.json --testPathPattern="test/e2e/$mod/.*\.e2e\.spec\.ts" --runInBand || true
+            fi
+          done
+
+          # Cleanup
+          echo "Cleaning up containers"
+          docker rm -f postgres_test_ci || true
+          docker rm -f redis_test_ci || true
+
+      - name: Build application
+        run: npm run build || true
 
       - name: SonarQube Scan
         run: |

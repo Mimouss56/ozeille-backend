@@ -23,7 +23,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.npm
-          key: ${{ runner.os }}-npm-${{ hashFiles('apps/*/package-lock.json') }}
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-npm-
 
@@ -34,18 +34,24 @@ jobs:
             -e POSTGRES_USER=postgres \
             -e POSTGRES_DB=testdb \
             -p 5432:5432 \
-            -d postgres:15-alpine
+            -d postgres:17-alpine
           sleep 5
 
-      - name: Install dependencies (transactions-service)
+      - name: Start Redis for tests
         run: |
-          cd apps/transactions-service
-          npm ci
-      - name: Install dependencies (users-service)
-        run: |
-          cd apps/users-service
-          npm ci
+          docker run --name redis_ci \
+            -p 6379:6379 \
+            -d redis:8-alpine
+          sleep 2
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
       - run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
