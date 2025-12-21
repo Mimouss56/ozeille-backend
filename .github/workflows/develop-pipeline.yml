@@ -26,14 +26,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-
-      - name: Cache npm dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-npm-
+          cache: "npm"
+          cache-dependency-path: "package-lock.json"
 
       - name: Start PostgreSQL for tests
         run: |
@@ -150,6 +144,34 @@ jobs:
           # Placeholder: build and push images for services and frontend
           echo "docker build/push steps here (implement using npm scripts or Dockerfiles)"
 
+  artillery-load-tests:
+    needs: full-audit
+    uses: ./.github/workflows/artillery-tests.yml
+    with:
+      api-url: "http://localhost:3000"
+    secrets: inherit
+
+  semantic-release:
+    needs: [full-audit, artillery-load-tests]
+    runs-on: ubuntu-latest
+    outputs:
+      tag-pushed: ${{ steps.semantic.outputs.tag-pushed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: "package-lock.json"
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Semantic Release
         id: semantic
         run: |
@@ -167,9 +189,9 @@ jobs:
           fi
 
   merge-to-main:
-    needs: full-audit
+    needs: semantic-release
     runs-on: ubuntu-latest
-    if: needs.full-audit.outputs.tag-pushed == 'true'
+    if: needs.semantic-release.outputs.tag-pushed == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v5

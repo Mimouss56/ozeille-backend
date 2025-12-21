@@ -31,6 +31,7 @@ describe("POST /api/auth/2fa/validate (e2e)", () => {
   }, 30000);
 
   afterAll(async () => {
+    await redis.disconnect();
     await prisma.$disconnect();
     await app.close();
   }, 10000);

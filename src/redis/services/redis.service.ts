@@ -63,4 +63,10 @@ export class RedisService {
     const key = this.buildKey(prefix, identifier);
     return this.exists(key);
   }
+
+  // ========== Connection management ==========
+
+  async disconnect(): Promise<void> {
+    await this.redis.quit();
+  }
 }
