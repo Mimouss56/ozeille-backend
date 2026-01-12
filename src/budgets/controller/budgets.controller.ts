@@ -9,7 +9,7 @@ import { CreateBudgetRequest } from "../dto/create-budget.dto";
 import { UpdateBudgetRequest } from "../dto/update-budget.dto";
 import { BudgetsService } from "../services/budgets.service";
 
-@Controller("budgets")
+@Controller("api/budgets")
 export class BudgetsController {
   constructor(private readonly budgetsService: BudgetsService) {}
 

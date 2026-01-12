@@ -17,7 +17,7 @@ import { UpdateCategoryRequest } from "../dto/update-category.dto";
 import { CategoriesService } from "../services/categories.service";
 
 @ApiTags("Categories")
-@Controller("categories")
+@Controller("api/categories")
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 

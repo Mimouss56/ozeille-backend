@@ -1,17 +1,12 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put, Query, UseInterceptors } from "@nestjs/common";
-import {
-  ApiBadRequestResponse,
-  ApiCreatedResponse,
-  ApiExtraModels,
-  ApiNotFoundResponse,
-  ApiOkResponse,
-  getSchemaPath,
-} from "@nestjs/swagger";
+import { ApiBadRequestResponse, ApiCreatedResponse, ApiExtraModels, ApiNotFoundResponse, ApiOkResponse, getSchemaPath } from "@nestjs/swagger";
 import { ErrorResponse } from "src/common/dto/base-error.dto";
 import { ValidationErrorResponse } from "src/common/dto/validation-error.dto";
 import { PaginatedResponseInterceptor } from "src/common/interceptors/paginated-response.interceptor";
 import { PaginatedDatabaseResponse } from "src/common/types";
 import { type Transaction } from "src/generated/prisma/client";
+
+
 
 import { CreateTransactionRequest } from "../dto/create-transaction.dto";
 import { TransactionFilters } from "../dto/transaction-filter.dto";
@@ -20,7 +15,26 @@ import { TransactionResponse } from "../dto/transaction.dto";
 import { UpdateTransactionRequest } from "../dto/update-transaction.dto";
 import { TransactionsService } from "../services/transactions.service";
 
-@Controller("transactions")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@Controller("api/transactions")
 export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {
     // Constructor body can be empty or used for additional setup
