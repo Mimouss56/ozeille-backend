@@ -38,7 +38,10 @@ async function bootstrap() {
       filter: true,
     },
   });
-
+  app.enableCors({
+    origin: "http://localhost:5173", // adapte selon ton front
+    credentials: true,
+  });
   await app.listen(port);
 }
 
