@@ -11,7 +11,7 @@ async function bootstrap() {
 
   app.useGlobalFilters(new ZodValidationExceptionFilter(), new PrismaExceptionFilter());
 
-  const port = process.env.PORT || 3000;
+  const port = process.env.API_PORT || 3000;
   const isProduction = process.env.NODE_ENV === "production";
   const env = process.env.NODE_ENV || "development";
   const version = "1.0.0";
