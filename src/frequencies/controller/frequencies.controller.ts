@@ -1,30 +1,19 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put } from "@nestjs/common";
-import { ApiBadRequestResponse, ApiCreatedResponse, ApiFoundResponse, ApiNotFoundResponse, ApiOkResponse } from "@nestjs/swagger";
+import {
+  ApiBadRequestResponse,
+  ApiCreatedResponse,
+  ApiFoundResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+} from "@nestjs/swagger";
 import { ErrorResponse } from "src/common/dto/base-error.dto";
 import { ValidationErrorResponse } from "src/common/dto/validation-error.dto";
 import { Frequency } from "src/generated/prisma/client";
-
-
 
 import { CreateFrequencyRequest } from "../dto/create-frequency.dto";
 import { FrequencyResponse } from "../dto/frequency.dto";
 import { UpdateFrequencyRequest } from "../dto/update-frequency.dto";
 import { FrequenciesService } from "../services/frequencies.service";
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 @Controller("api/frequencies")
 export class FrequenciesController {
