@@ -20,12 +20,12 @@ CMD sh /usr/script/entrypoint.sh
 FROM base AS prod-deps
 COPY --chown=node:node package.json .
 COPY --chown=node:node package-lock.json .
-RUN npm install --prod
+RUN npm ci --no-audit --no-fund --omit=dev
 
 # --- Build app for prod ---
 FROM base AS build
 COPY --chown=node:node . .
-RUN npm install
+RUN npm install --no-audit
 RUN npx prisma generate
 RUN npm run build
 
@@ -44,7 +44,7 @@ RUN chmod +x ./entrypoint.sh
 
 # -- Import all migrations, the config file and necessary dependencies needed for the migration
 WORKDIR /home/node/db
-COPY --from=setup /gome/node/app/node_modules /home/node/db/nodes_modules
+COPY --from=setup /home/node/app/node_modules /home/node/db/nodes_modules
 COPY --from=build /home/node/app/prisma /home/node/db/prisma
 COPY --from=build /home/node/app/prisma.config.ts /home/node/db/prisma.config.ts
 
