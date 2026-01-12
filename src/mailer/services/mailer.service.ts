@@ -4,17 +4,12 @@ import { Transporter, createTransport } from "nodemailer";
 import { REDIS_TTL } from "src/auth/constants/redis.constants";
 import { RedisKey, RedisService } from "src/redis/redis.module";
 
-import { MailerRepository } from "../repository/mailer.repository";
-
 @Injectable()
 export class MailerService {
   private transporter: Transporter;
   private readonly logger = new Logger(MailerService.name);
 
-  constructor(
-    private readonly repository: MailerRepository,
-    private readonly redisService: RedisService,
-  ) {
+  constructor(private readonly redisService: RedisService) {
     this.transporter = createTransport({
       host: process.env.MAILER_HOST ?? "localhost",
       port: parseInt(process.env.MAILER_PORT ?? "1025", 10),
