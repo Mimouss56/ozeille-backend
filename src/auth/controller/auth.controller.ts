@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Post, Query } from "@nestjs/common";
+import { BadRequestException, Body, Controller, HttpCode, Post, Query } from "@nestjs/common";
 import { ApiBadRequestResponse, ApiOkResponse, ApiResponse, ApiUnauthorizedResponse } from "@nestjs/swagger";
 import { ValidationErrorResponse } from "src/common/dto/validation-error.dto";
 import { MailerService } from "src/mailer/services/mailer.service";
@@ -24,6 +24,7 @@ export class AuthController {
   ) {}
 
   @Post("register/confirm")
+  @HttpCode(204)
   @ApiOkResponse({
     description: "Retourne true si le token est valide et l'email confirmé, false sinon",
     schema: {
@@ -34,9 +35,11 @@ export class AuthController {
   @ApiBadRequestResponse({
     description: "Le token est manquant dans la requête",
   })
-  async confirm(@Query("token") token?: string): Promise<boolean> {
+  async confirm(@Query("token") token?: string): Promise<void> {
     if (!token) throw new BadRequestException("token is required");
-    return this.authService.verifyConfirmation(token);
+    const status = await this.authService.verifyConfirmation(token);
+    if (!status) throw new BadRequestException("Invalid or expired token");
+    // return this.authService.verifyConfirmation(token);
   }
 
   @Post("register/send-confirmation-email")
