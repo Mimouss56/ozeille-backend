@@ -29,6 +29,11 @@ RUN npm install
 RUN npx prisma generate
 RUN npm run build
 
+# --- Install dependencies for starting app ---
+FROM base as setup
+RUN npm i -D typescript@5.7.3 prisma@7.0.0 --no-audit --no-fund
+RUN npm i @prisma/adapter-pg pg dotenv --no-audit --no-fund
+
 # --- Build final --
 FROM base AS production
 
@@ -37,8 +42,9 @@ WORKDIR /home/node/script
 COPY --chown=node:node ./docker/entrypoint-prod.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 
-# -- Import all migrations and the config file needed for the migration
+# -- Import all migrations, the config file and necessary dependencies needed for the migration
 WORKDIR /home/node/db
+COPY --from=setup /gome/node/app/node_modules /home/node/db/nodes_modules
 COPY --from=build /home/node/app/prisma /home/node/db/prisma
 COPY --from=build /home/node/app/prisma.config.ts /home/node/db/prisma.config.ts
 
