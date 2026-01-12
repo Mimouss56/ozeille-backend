@@ -11,12 +11,6 @@ describe("MailerService - send2FACode (TI)", () => {
       providers: [
         MailerService,
         {
-          provide: MailerService,
-          useValue: {
-            generateAndStoreConfirmToken: jest.fn(),
-          },
-        },
-        {
           provide: RedisService,
           useValue: {
             setWithPrefix: jest.fn(),

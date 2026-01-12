@@ -20,7 +20,7 @@ import { TransactionResponse } from "../dto/transaction.dto";
 import { UpdateTransactionRequest } from "../dto/update-transaction.dto";
 import { TransactionsService } from "../services/transactions.service";
 
-@Controller("transactions")
+@Controller("api/transactions")
 export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {
     // Constructor body can be empty or used for additional setup
