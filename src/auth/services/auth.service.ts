@@ -78,10 +78,11 @@ export class AuthService {
    */
   async verifyConfirmation(token: string): Promise<boolean> {
     const email = await this.redisService.getWithPrefix(RedisKey.CONFIRM_EMAIL_TOKEN, token);
-
+    const status = false;
     if (!email) {
       this.logger.warn(`Token not found or expired: ${token}`);
-      return false;
+      // return false for invalid/expired token exception
+      return status;
     }
 
     try {
@@ -89,7 +90,8 @@ export class AuthService {
       const user = await this.usersService.findByEmail(email);
       if (!user) {
         this.logger.error(`User not found for email: ${email}`);
-        return false;
+        // return false if user not found exception
+        return status;
       }
 
       await this.usersService.confirmUserEmail(user.id);
@@ -98,7 +100,8 @@ export class AuthService {
       return true;
     } catch (error) {
       this.logger.error(`Failed to confirm email for ${email}:`, error);
-      return false;
+      // return false on any other error exception
+      return status;
     }
   }
 

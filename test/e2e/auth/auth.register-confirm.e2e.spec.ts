@@ -57,7 +57,7 @@ describe("POST /api/auth/register/confirm (e2e)", () => {
     const response = await request(app.getHttpServer())
       .post("/api/auth/register/confirm")
       .query({ token: testToken })
-      .expect(201);
+      .expect(204);
 
     expect(response.body).toEqual({});
 
@@ -77,20 +77,18 @@ describe("POST /api/auth/register/confirm (e2e)", () => {
   });
 
   it("devrait retourner ok: false si le token est invalide", async () => {
-    const response = await request(app.getHttpServer())
+    const requete = await request(app.getHttpServer())
       .post("/api/auth/register/confirm")
-      .query({ token: "invalid-token" })
-      .expect(201);
+      .query({ token: "invalid-token" });
 
-    expect(response.body).toEqual({});
+    expect(requete.badRequest).toBe(true);
   });
 
   it("devrait retourner ok: false si le token a expiré", async () => {
-    const response = await request(app.getHttpServer())
+    const requete = await request(app.getHttpServer())
       .post("/api/auth/register/confirm")
-      .query({ token: "expired-token" })
-      .expect(201);
+      .query({ token: "expired-token" });
 
-    expect(response.body).toEqual({});
+    expect(requete.badRequest).toBe(true);
   });
 });
