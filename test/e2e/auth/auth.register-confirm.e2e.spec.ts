@@ -57,7 +57,7 @@ describe("POST /api/auth/register/confirm (e2e)", () => {
     const response = await request(app.getHttpServer())
       .post("/api/auth/register/confirm")
       .query({ token: testToken })
-      .expect(201);
+      .expect(204);
 
     expect(response.body).toEqual({});
 
@@ -80,7 +80,7 @@ describe("POST /api/auth/register/confirm (e2e)", () => {
     const response = await request(app.getHttpServer())
       .post("/api/auth/register/confirm")
       .query({ token: "invalid-token" })
-      .expect(201);
+      .expect(400);
 
     expect(response.body).toEqual({});
   });
@@ -89,7 +89,7 @@ describe("POST /api/auth/register/confirm (e2e)", () => {
     const response = await request(app.getHttpServer())
       .post("/api/auth/register/confirm")
       .query({ token: "expired-token" })
-      .expect(201);
+      .expect(400);
 
     expect(response.body).toEqual({});
   });
