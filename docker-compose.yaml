@@ -6,13 +6,14 @@ services:
       target: development
     volumes:
       - .:/home/node/app
-      - /home/node/app/node_modules
+#      - /home/node/app/node_modules
     environment:
-      DATABASE_URL: "postgresql://${DB_USER:-ozeille}:${DB_PASSWORD:-ozeille}@db:5432/${DB_NAME:-ozeille}?schema=public"
+      DATABASE_URL: ${DATABASE_URL:-postgresql://ozeille:ozeille@db:5432/ozeille}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       MAILER_HOST: mailpit
       MAILER_PORT: 1025
+      MAILER_FROM: ${MAILER_FROM:-no-reply@example.com}
       NODE_ENV: development
     ports:
       - ${API_PORT:-3000}:3000
@@ -27,13 +28,13 @@ services:
   db:
     image: postgres:17
     environment:
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-ozeille}
-      POSTGRES_USER: ${DB_USER:-ozeille}
-      POSTGRES_DB: ${DB_NAME:-ozeille}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-ozeille}
+      POSTGRES_USER: ${DATABASE_USER:-ozeille}
+      POSTGRES_DB: ${DATABASE_NAME:-ozeille}
     volumes:
       - db-data:/var/lib/postgresql/data
     ports:
-      - ${DB_PORT:-5432}:5432
+      - ${DATABASE_PORT:-5432}:5432
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER}" ]
       interval: 30s

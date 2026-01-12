@@ -15,7 +15,7 @@ import { FrequencyResponse } from "../dto/frequency.dto";
 import { UpdateFrequencyRequest } from "../dto/update-frequency.dto";
 import { FrequenciesService } from "../services/frequencies.service";
 
-@Controller("frequencies")
+@Controller("api/frequencies")
 export class FrequenciesController {
   constructor(private readonly frequenciesService: FrequenciesService) {}
 
