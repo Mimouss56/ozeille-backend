@@ -17,7 +17,7 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage --coverageThreshold='{\"global\":{\"lines\":70,\"statements\":70}}'",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:e2e": "jest --config ./jest-e2e.json",
     "test:ti": "jest --testPathPattern=\"test/ti/.*\\.ti\\.spec\\.ts$\" --runInBand",
     "test:ti:module": "jest --testPathPattern=\"test/ti/$MODULE/.*\\.ti\\.spec\\.ts$\" --runInBand",
     "test:e2e:module": "jest --testPathPattern=\"test/e2e/$MODULE/.*\\.e2e\\.spec\\.ts$\" --runInBand",
@@ -47,7 +47,6 @@
     "rxjs": "^7.8.1",
     "uuid": "^13.0.0",
     "zod": "^4.1.13"
-    
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
