@@ -16,14 +16,10 @@ async function bootstrap() {
   const env = process.env.NODE_ENV || "development";
   const version = "1.0.0";
 
-  const docTitle = `LaPince API (${env.toUpperCase()})`;
-  const docVersion = env === "production" ? version : `${version}-${env}`;
-  const docDescription = 'API de gestion budgétaire "LaPince';
-
   const builder = new DocumentBuilder()
-    .setTitle(docTitle)
-    .setDescription(docDescription)
-    .setVersion(docVersion)
+    .setTitle(`LaPince API (${env.toUpperCase()})`)
+    .setDescription('API de gestion budgétaire "LaPince')
+    .setVersion(env === "production" ? version : `${version}-${env}`)
     .setContact("Support LaPince", "", "");
 
   if (isProduction) {

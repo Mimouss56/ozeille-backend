@@ -1,14 +1,15 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { randomUUID } from "crypto";
 import { Transporter, createTransport } from "nodemailer";
-
-import { MailerRepository } from "../repository/mailer.repository";
+import { REDIS_TTL } from "src/auth/constants/redis.constants";
+import { RedisKey, RedisService } from "src/redis/redis.module";
 
 @Injectable()
 export class MailerService {
   private transporter: Transporter;
   private readonly logger = new Logger(MailerService.name);
 
-  constructor(private readonly repository: MailerRepository) {
+  constructor(private readonly redisService: RedisService) {
     this.transporter = createTransport({
       host: process.env.MAILER_HOST ?? "localhost",
       port: parseInt(process.env.MAILER_PORT ?? "1025", 10),
@@ -45,7 +46,10 @@ export class MailerService {
    * Send confirmation email with token
    */
   async sendConfirmationEmail(email: string, firstName?: string): Promise<void> {
-    const token = await this.repository.generateAndStoreConfirmToken(email);
+    const token = randomUUID();
+
+    // Store hash with expiration
+    await this.redisService.setWithPrefix(RedisKey.CONFIRM_EMAIL_TOKEN, token, email, REDIS_TTL.CONFIRM_EMAIL_TOKEN);
 
     try {
       const subject = "Confirmez votre compte";
@@ -65,7 +69,7 @@ export class MailerService {
       await this.sendMail(email, subject, html);
     } catch (error) {
       this.logger.error(`Failed to send confirmation email to ${email}: ${error}`);
-      await this.repository.deleteConfirmToken(token);
+      await this.redisService.delWithPrefix(RedisKey.CONFIRM_EMAIL_TOKEN, token);
       throw new Error(`Failed to send confirmation email: ${error}`);
     }
   }
@@ -74,7 +78,12 @@ export class MailerService {
    * Generate and store token (for external use)
    */
   async generateAndStoreToken(email: string): Promise<string> {
-    return this.repository.generateAndStoreConfirmToken(email);
+    const token = randomUUID();
+
+    // Store hash with expiration
+    await this.redisService.setWithPrefix(RedisKey.CONFIRM_EMAIL_TOKEN, token, email, REDIS_TTL.CONFIRM_EMAIL_TOKEN);
+
+    return token;
   }
 
   /**
@@ -117,5 +126,30 @@ export class MailerService {
    */
   async registerEmail(email: string, firstName?: string): Promise<void> {
     await this.sendConfirmationEmail(email, firstName);
+  }
+
+  /**
+   * Send reset password email with token
+   */
+  async sendResetPasswordEmail(email: string, token: string): Promise<void> {
+    const subject = "Réinitialisation de votre mot de passe";
+    const baseUrl = process.env.FRONTEND_URL ?? process.env.API_URL ?? "";
+    const path = "/reset-password";
+    const href = baseUrl ? `${baseUrl.replace(/\/$/, "")}${path}?token=${token}` : `${path}?token=${token}`;
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2>Réinitialisation de votre mot de passe</h2>
+        <p>Vous avez demandé à réinitialiser votre mot de passe.</p>
+        <p>Cliquez sur le lien ci-dessous pour définir un nouveau mot de passe :</p>
+        <p><a href="${href}" style="display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">Réinitialiser mon mot de passe</a></p>
+        <p>Si le lien ne fonctionne pas, copiez-collez l'URL suivante dans votre navigateur :</p>
+        <p><code>${href}</code></p>
+        <p><strong>Ce lien expirera dans 15 minutes.</strong></p>
+        <p>Si vous n'avez pas demandé cette réinitialisation, ignorez cet email. Votre mot de passe actuel reste inchangé.</p>
+      </div>
+    `;
+
+    await this.sendMail(email, subject, html);
   }
 }

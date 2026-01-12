@@ -1,0 +1,115 @@
+# Configuration Artillery pour tests de charge
+
+config:
+  target: "http://localhost:5173"
+  phases:
+    # Phase de warm-up
+    - duration: 60
+      arrivalRate: 5
+      name: "Warm up phase"
+    
+    # Phase de charge normale
+    - duration: 120
+      arrivalRate: 10
+      name: "Normal load"
+    
+    # Phase de montée en charge
+    - duration: 120
+      arrivalRate: 20
+      name: "Ramp up load"
+    
+    # Phase de charge maximale
+    - duration: 60
+      arrivalRate: 50
+      name: "Peak load"
+    
+    # Phase de descente
+    - duration: 60
+      arrivalRate: 10
+      name: "Cool down"
+
+  # Configuration des plugins
+  plugins:
+    metrics-by-endpoint: {}
+    
+  # Seuils de performance
+  ensure:
+    maxErrorRate: 1 # Maximum 1% d'erreurs
+    p95: 500 # 95% des requêtes doivent répondre en moins de 500ms
+    p99: 1000 # 99% des requêtes doivent répondre en moins de 1s
+
+  # Environnements
+  environments:
+    production:
+      target: "https://votre-app-production.com"
+    staging:
+      target: "https://votre-app-staging.com"
+    development:
+      target: "http://localhost:5173"
+
+scenarios:
+  - name: "Scénario utilisateur basique"
+    weight: 70
+    flow:
+      - get:
+          url: "/"
+          capture:
+            - json: "$.title"
+              as: "pageTitle"
+          expect:
+            - statusCode: 200
+            - contentType: text/html
+
+      - think: 2 # Pause de 2 secondes (simule un utilisateur qui lit)
+
+      - get:
+          url: "/about"
+          expect:
+            - statusCode: 200
+
+  - name: "Navigation avec authentification"
+    weight: 20
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "test@example.com"
+            password: "testpassword"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+          expect:
+            - statusCode: 200
+
+      - get:
+          url: "/api/user/profile"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+      - think: 3
+
+      - get:
+          url: "/dashboard"
+          expect:
+            - statusCode: 200
+
+  - name: "Recherche et filtrage"
+    weight: 10
+    flow:
+      - get:
+          url: "/search?q=test"
+          expect:
+            - statusCode: 200
+            - hasProperty: results
+
+      - think: 1
+
+      - get:
+          url: "/search?q=test&filter=recent"
+          expect:
+            - statusCode: 200
+
+# Configuration pour les rapports
+processor: "./artillery-processor.js" # Fichier JS optionnel pour du traitement personnalisé

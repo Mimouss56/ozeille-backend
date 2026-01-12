@@ -1,12 +1,16 @@
 import { HttpStatus, type INestApplication } from "@nestjs/common";
 import { Test, TestingModule } from "@nestjs/testing";
 import { AppModule } from "src/app.module";
+import { PrismaExceptionFilter } from "src/common/filters/prisma-exception.filter";
+import { ZodValidationExceptionFilter } from "src/common/filters/validation.filter";
 import { PrismaService } from "src/prisma/prisma.service";
+import { RedisService } from "src/redis/redis.module";
 import request from "supertest";
 
 describe("POST /api/auth/register (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
+  let redis: RedisService;
 
   const validUser = {
     email: "test@example.com",
@@ -22,12 +26,18 @@ describe("POST /api/auth/register (e2e)", () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+
+    // Ajoute les filtres globaux comme dans main.ts
+    app.useGlobalFilters(new ZodValidationExceptionFilter(), new PrismaExceptionFilter());
+
     await app.init();
 
     prisma = moduleFixture.get<PrismaService>(PrismaService);
+    redis = moduleFixture.get<RedisService>(RedisService);
   }, 30000);
 
   afterAll(async () => {
+    await redis.disconnect();
     await prisma.$disconnect();
     await app.close();
   }, 10000);

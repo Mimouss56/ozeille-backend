@@ -23,7 +23,6 @@ export class UsersService {
     if (createUserDto.password !== createUserDto.confirmedPassword) {
       throw new UserPasswordDoesntMatchException();
     }
-
     const existingUser = await this.repository.findByEmail(createUserDto.email);
     if (existingUser) {
       await this.mailerService.sendAlreadyExistsEmail(createUserDto.email);
@@ -72,6 +71,14 @@ export class UsersService {
       throw new NotFoundException("The user with the given ID was not found.");
     }
     return this.mapToUserEntity(user);
+  }
+
+  async updateUserPassword(userId: string, hashedPassword: string): Promise<void> {
+    await this.repository.update(userId, { password: hashedPassword });
+  }
+
+  async confirmUserEmail(userId: string): Promise<void> {
+    await this.repository.update(userId, { confirmedAt: new Date() });
   }
 
   /**

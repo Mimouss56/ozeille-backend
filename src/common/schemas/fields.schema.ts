@@ -5,4 +5,4 @@ export const hexColorSchema = z
   // Le regex pour les couleurs Hex, par exemple #FFF ou #FFFFFF
   .regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, {
     message: "Color must be a valid Hex code (ex : #FFFFFF or #FFF)",
-  })
+  });

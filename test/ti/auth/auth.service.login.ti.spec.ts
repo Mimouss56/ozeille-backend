@@ -2,9 +2,9 @@ import { UnauthorizedException } from "@nestjs/common";
 import { Test, TestingModule } from "@nestjs/testing";
 import * as bcrypt from "bcrypt";
 import { MailerService } from "src/mailer/services/mailer.service";
+import { RedisService } from "src/redis/redis.module";
 import { UsersService } from "src/users/services/users.service";
 
-import { AuthRepository } from "../../../src/auth/repository/auth.repository";
 import { AuthService } from "../../../src/auth/services/auth.service";
 
 jest.mock("bcrypt");
@@ -19,13 +19,6 @@ describe("AuthService - validateCredentials (TI)", () => {
       providers: [
         AuthService,
         {
-          provide: AuthRepository,
-          useValue: {
-            store2FACode: jest.fn(),
-            storeTempToken: jest.fn(),
-          },
-        },
-        {
           provide: UsersService,
           useValue: {
             findByEmailWithPassword: jest.fn(),
@@ -36,6 +29,14 @@ describe("AuthService - validateCredentials (TI)", () => {
           useValue: {
             registerEmail: jest.fn(),
             send2FACode: jest.fn(),
+          },
+        },
+        {
+          provide: RedisService,
+          useValue: {
+            setWithPrefix: jest.fn(),
+            getWithPrefix: jest.fn(),
+            delWithPrefix: jest.fn(),
           },
         },
       ],
