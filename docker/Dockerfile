@@ -26,6 +26,7 @@ RUN npm install --prod
 FROM base AS build
 COPY --chown=node:node . .
 RUN npm install
+RUN npx prisma generate
 RUN npm run build
 
 # --- Build final --
