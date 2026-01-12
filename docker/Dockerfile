@@ -30,7 +30,7 @@ RUN npx prisma generate
 RUN npm run build
 
 # --- Install dependencies for starting app ---
-FROM base as setup
+FROM base AS setup
 RUN npm i -D typescript@5.7.3 prisma@7.0.0 --no-audit --no-fund
 RUN npm i @prisma/adapter-pg pg dotenv --no-audit --no-fund
 
@@ -44,9 +44,9 @@ RUN chmod +x ./entrypoint.sh
 
 # -- Import all migrations, the config file and necessary dependencies needed for the migration
 WORKDIR /home/node/db
-COPY --from=setup /home/node/app/node_modules /home/node/db/nodes_modules
-COPY --from=build /home/node/app/prisma /home/node/db/prisma
-COPY --from=build /home/node/app/prisma.config.ts /home/node/db/prisma.config.ts
+COPY --chown=node:node --from=setup /home/node/app/node_modules /home/node/db/node_modules
+COPY --chown=node:node --from=build /home/node/app/prisma /home/node/db/prisma
+COPY --chown=node:node --from=build /home/node/app/prisma.config.ts /home/node/db/prisma.config.ts
 
 # -- Import all necessaries files for the service
 WORKDIR /home/node/app
