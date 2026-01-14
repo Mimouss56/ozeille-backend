@@ -160,6 +160,10 @@ MAILER_FROM=noreply@lapince.com
 # JWT
 JWT_SECRET=your-secret-key-here
 JWT_EXPIRATION=24h
+
+# Frontend URL
+FRONTEND_URL=http://localhost:5173
+API_URL=http://localhost:3000
 ```
 
 ## 📖 Documentation
