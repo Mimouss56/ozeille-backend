@@ -18,6 +18,8 @@ describe("Categories E2E - Création sans budgetId", () => {
 
   afterAll(async () => {
     await app.close();
+    const { PrismaService } = await import("src/prisma/prisma.service");
+    await app.get(PrismaService).$disconnect();
   });
 
   it("doit retourner 406 si budgetId est manquant", async () => {
