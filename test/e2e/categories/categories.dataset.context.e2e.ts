@@ -31,7 +31,6 @@ export class CategoriesTestContext {
       data: {
         label: this.budgetLabel,
         color: "#3498db",
-        // Si ton schema.prisma définit une relation User sur Budget, décommente la ligne suivante :
         // userId: this.userId,
       },
     });
