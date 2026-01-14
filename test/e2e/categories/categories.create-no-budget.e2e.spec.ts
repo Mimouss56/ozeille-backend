@@ -1,6 +1,8 @@
 import { INestApplication, ValidationPipe } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import { AppModule } from "src/app.module";
+import { PrismaService } from "src/prisma/prisma.service";
+import { RedisService } from "src/redis/redis.module";
 import request from "supertest";
 
 describe("Categories E2E - Création sans budgetId", () => {
@@ -18,8 +20,24 @@ describe("Categories E2E - Création sans budgetId", () => {
 
   afterAll(async () => {
     await app.close();
-    const { PrismaService } = await import("src/prisma/prisma.service");
-    await app.get(PrismaService).$disconnect();
+    try {
+      // Pour Prisma
+      const prisma = app.get(PrismaService);
+      if (prisma) {
+        await prisma.$disconnect();
+      }
+      // Pour Redis
+      const redis = app.get(RedisService);
+      if (redis) {
+        await redis.disconnect();
+      }
+    } catch (e) {
+      // Log l'erreur pour comprendre si quelque chose échoue
+      console.error("Erreur lors du nettoyage des connexions :", e);
+    } finally {
+      // 2. On ferme l'application NestJS à la toute fin
+      await app.close();
+    }
   });
 
   it("doit retourner 406 si budgetId est manquant", async () => {
