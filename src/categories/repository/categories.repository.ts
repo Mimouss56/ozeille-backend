@@ -4,6 +4,7 @@ import { PrismaService } from "src/prisma/prisma.service";
 
 import { CreateCategoryRequest } from "../dto/create-category.dto";
 import { UpdateCategoryRequest } from "../dto/update-category.dto";
+import { CategoriesBudgetDoesntExistException } from "../exceptions/categories.budget-does-exist.exception";
 
 @Injectable()
 export class CategoriesRepository {
@@ -15,7 +16,9 @@ export class CategoriesRepository {
 
   async create(data: CreateCategoryRequest): Promise<Category> {
     const { budgetId, ...rest } = data;
-
+    if (!budgetId) {
+      throw new CategoriesBudgetDoesntExistException();
+    }
     return this.prisma.category.create({
       data: {
         ...rest,
