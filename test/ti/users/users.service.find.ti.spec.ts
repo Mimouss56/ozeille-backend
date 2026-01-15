@@ -8,7 +8,6 @@ describe("UsersService (TI)", () => {
   let module: TestingModule;
   let service: UsersService;
   let mockRepository: jest.Mocked<UsersRepository>;
-  let mockMailerService: jest.Mocked<MailerService>;
 
   beforeAll(async () => {
     module = await Test.createTestingModule({
@@ -34,7 +33,6 @@ describe("UsersService (TI)", () => {
 
     service = module.get<UsersService>(UsersService);
     mockRepository = module.get(UsersRepository);
-    mockMailerService = module.get(MailerService);
   });
 
   beforeEach(() => jest.clearAllMocks());
