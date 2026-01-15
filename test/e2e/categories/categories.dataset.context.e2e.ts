@@ -31,7 +31,9 @@ export class CategoriesTestContext {
       data: {
         label: this.budgetLabel,
         color: "#3498db",
-        // userId: this.userId,
+        // userId: {
+        //   connect: { id: this.userId },
+        // },
       },
     });
     this.budgetId = budget.id;
@@ -62,6 +64,6 @@ export class CategoriesTestContext {
       where: { id: this.budgetId },
     });
 
-    await this.prisma.user.delete({ where: { id: this.userId } });
+    await this.prisma.user.deleteMany({ where: { id: this.userId } });
   }
 }
