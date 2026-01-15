@@ -8,7 +8,6 @@ export const createCategorySchema = categorySchema
     budgetId: true,
     label: true,
     color: true,
-    userId: true,
     limitAmount: true,
   })
   .required();
