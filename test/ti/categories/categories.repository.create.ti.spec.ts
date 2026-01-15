@@ -34,14 +34,11 @@ describe("CategoriesRepository - create (TI)", () => {
 
     // 2. Préparation des données
     const userId = "user-1";
-    // Le DTO ne contient généralement PAS le userId (il vient du token)
     const dto: CreateCategoryDto = {
       label: "Test Catégorie",
       budgetId: "budget-1",
       color: "#FF0000",
-      // userId: "user-1", // On l'enlève du DTO entrant pour être réaliste
       limitAmount: 100,
-      userId: null,
     };
 
     // 3. Exécution avec la NOUVELLE signature (userId, dto)
