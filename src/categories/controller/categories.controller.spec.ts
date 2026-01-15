@@ -60,7 +60,6 @@ describe("CategoriesController", () => {
         label: "New Cat",
         color: "#FFF",
         budgetId: "budget-1",
-        userId: "user-123", // Requis par le DTO même si écrasé par le ctx
         limitAmount: 100,
       };
 
