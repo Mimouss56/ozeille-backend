@@ -6,10 +6,13 @@ import { PrismaService } from "src/prisma/prisma.service";
 import { RedisService } from "src/redis/redis.module";
 import request from "supertest";
 
+import { CategoriesTestContext } from "../categories/categories.dataset.context.e2e";
+
 describe("POST /api/auth/login (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let redis: RedisService;
+  let testContext: CategoriesTestContext;
 
   const testUser = {
     email: "login-test@example.com",
@@ -28,16 +31,24 @@ describe("POST /api/auth/login (e2e)", () => {
 
     prisma = moduleFixture.get<PrismaService>(PrismaService);
     redis = moduleFixture.get<RedisService>(RedisService);
+
+    testContext = new CategoriesTestContext(prisma);
+    await testContext.init();
   }, 30000);
 
   afterAll(async () => {
-    await redis.disconnect();
-    await prisma.$disconnect();
+    // --- NETTOYAGE DU DATASET ---
+    if (testContext) await testContext.cleanup();
+
+    if (redis) await redis.disconnect();
+    if (prisma) await prisma.$disconnect();
     await app.close();
   }, 10000);
 
   beforeEach(async () => {
-    await prisma.user.deleteMany({ where: { email: testUser.email } });
+    await prisma.user.delete({
+      where: { email: testUser.email },
+    });
 
     const hashedPassword = await bcrypt.hash(testUser.password, 10);
 
@@ -59,7 +70,6 @@ describe("POST /api/auth/login (e2e)", () => {
     if (user) {
       try {
         await redis.del(`2fa:${user.id}`);
-        // Note: Pas de méthode keys() dans RedisService, on laisse les temp-tokens expirer
       } catch (error) {
         console.warn("Failed to clean Redis:", error);
       }

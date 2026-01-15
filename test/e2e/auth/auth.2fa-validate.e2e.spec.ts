@@ -1,15 +1,12 @@
 import { type INestApplication } from "@nestjs/common";
-import { Test, TestingModule } from "@nestjs/testing";
 import bcrypt from "bcrypt";
-import { AppModule } from "src/app.module";
-import { PrismaService } from "src/prisma/prisma.service";
-import { RedisService } from "src/redis/redis.module";
 import request from "supertest";
+
+import { AuthTestContext } from "./auth.dataset.context.e2e";
 
 describe("POST /api/auth/2fa/validate (e2e)", () => {
   let app: INestApplication;
-  let prisma: PrismaService;
-  let redis: RedisService;
+  let ctx: AuthTestContext;
 
   const testUser = {
     email: "validate-2fa-test@example.com",
@@ -19,29 +16,21 @@ describe("POST /api/auth/2fa/validate (e2e)", () => {
   };
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
-
-    prisma = moduleFixture.get<PrismaService>(PrismaService);
-    redis = moduleFixture.get<RedisService>(RedisService);
+    ctx = new AuthTestContext();
+    await ctx.init();
+    app = ctx.app;
   }, 30000);
 
   afterAll(async () => {
-    await redis.disconnect();
-    await prisma.$disconnect();
-    await app.close();
+    await ctx.cleanup();
   }, 10000);
 
   beforeEach(async () => {
-    await prisma.user.deleteMany({ where: { email: testUser.email } });
+    await ctx.deleteUserByEmail(testUser.email);
 
     const hashedPassword = await bcrypt.hash(testUser.password, 10);
 
-    await prisma.user.create({
+    await ctx.prisma.user.create({
       data: {
         email: testUser.email,
         password: hashedPassword,
@@ -53,18 +42,18 @@ describe("POST /api/auth/2fa/validate (e2e)", () => {
   });
 
   afterEach(async () => {
-    const user = await prisma.user.findUnique({
+    const user = await ctx.prisma.user.findUnique({
       where: { email: testUser.email },
     });
     if (user) {
       try {
-        await redis.del(`2fa:${user.id}`);
+        await ctx.redis.del(`2fa:${user.id}`);
         // Note: Pas de méthode keys() dans RedisService, on laisse les temp-tokens expirer
       } catch (error) {
         console.warn("Failed to clean Redis:", error);
       }
     }
-    await prisma.user.deleteMany({ where: { email: testUser.email } });
+    await ctx.deleteUserByEmail(testUser.email);
   });
 
   it("devrait valider le code 2FA avec le tempToken et retourner les tokens JWT", async () => {
@@ -78,10 +67,10 @@ describe("POST /api/auth/2fa/validate (e2e)", () => {
 
     const tempToken = loginResponse.body.tempToken;
 
-    const user = await prisma.user.findUnique({
+    const user = await ctx.prisma.user.findUnique({
       where: { email: testUser.email },
     });
-    const code = await redis.get(`2fa:${user!.id}`);
+    const code = await ctx.redis.get(`2fa:${user!.id}`);
 
     expect(code).not.toBeNull();
 
@@ -98,10 +87,10 @@ describe("POST /api/auth/2fa/validate (e2e)", () => {
     expect(typeof response.body.accessToken).toBe("string");
     expect(typeof response.body.refreshToken).toBe("string");
 
-    const deletedCode = await redis.get(`2fa:${user!.id}`);
+    const deletedCode = await ctx.redis.get(`2fa:${user!.id}`);
     expect(deletedCode).toBeNull();
 
-    const deletedTempToken = await redis.get(`temp-token:${tempToken}`);
+    const deletedTempToken = await ctx.redis.get(`temp-token:${tempToken}`);
     expect(deletedTempToken).toBeNull();
   });
 
@@ -147,10 +136,10 @@ describe("POST /api/auth/2fa/validate (e2e)", () => {
 
     const tempToken = loginResponse.body.tempToken;
 
-    const user = await prisma.user.findUnique({
+    const user = await ctx.prisma.user.findUnique({
       where: { email: testUser.email },
     });
-    await redis.del(`2fa:${user!.id}`);
+    await ctx.redis.del(`2fa:${user!.id}`);
 
     const response = await request(app.getHttpServer())
       .post("/api/auth/2fa/validate")
@@ -220,10 +209,10 @@ describe("POST /api/auth/2fa/validate (e2e)", () => {
 
     const tempToken = loginResponse.body.tempToken;
 
-    const user = await prisma.user.findUnique({
+    const user = await ctx.prisma.user.findUnique({
       where: { email: testUser.email },
     });
-    const code = await redis.get(`2fa:${user!.id}`);
+    const code = await ctx.redis.get(`2fa:${user!.id}`);
 
     await request(app.getHttpServer())
       .post("/api/auth/2fa/validate")
