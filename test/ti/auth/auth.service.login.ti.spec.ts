@@ -1,4 +1,5 @@
 import { UnauthorizedException } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
 import { Test, TestingModule } from "@nestjs/testing";
 import * as bcrypt from "bcrypt";
 import { MailerService } from "src/mailer/services/mailer.service";
@@ -37,6 +38,13 @@ describe("AuthService - validateCredentials (TI)", () => {
             setWithPrefix: jest.fn(),
             getWithPrefix: jest.fn(),
             delWithPrefix: jest.fn(),
+          },
+        },
+        {
+          provide: JwtService,
+          useValue: {
+            sign: jest.fn(),
+            verify: jest.fn(),
           },
         },
       ],

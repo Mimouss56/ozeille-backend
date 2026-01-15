@@ -1,4 +1,6 @@
 import { UnauthorizedException } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+// 👈 Ajout de l'import
 import { Test, TestingModule } from "@nestjs/testing";
 import { AuthService } from "src/auth/services/auth.service";
 import { MailerService } from "src/mailer/services/mailer.service";
@@ -31,6 +33,13 @@ describe("AuthService - validate2FA (TI)", () => {
             delWithPrefix: jest.fn(),
           },
         },
+        {
+          provide: JwtService,
+          useValue: {
+            signAsync: jest.fn().mockResolvedValue("mocked_token_string"),
+            verify: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -57,24 +66,31 @@ describe("AuthService - validate2FA (TI)", () => {
       lastName: "Doe",
       createdAt: new Date(),
       updatedAt: new Date(),
+      // Ajout de propriétés si votre User entity en a d'autres obligatoires
+      password: "hashed_password",
+      confirmedAt: new Date(),
     };
 
-    // Mock pour getTempToken
+    // 1. Mock pour récupérer l'ID user via le tempToken
     mockRedisService.getWithPrefix.mockResolvedValueOnce(userId);
-    // Mock pour get2FACode
+    // 2. Mock pour récupérer le code 2FA stocké
     mockRedisService.getWithPrefix.mockResolvedValueOnce("12345678");
+
+    // 3. Mock pour trouver l'utilisateur
     mockUsersService.findById.mockResolvedValue(mockUser);
 
     const result = await service.validate2FA(mockDto);
 
     expect(result).toHaveProperty("accessToken");
     expect(result).toHaveProperty("refreshToken");
+    // On s'attend à ce que les clés Redis (code + tempToken) soient supprimées
     expect(mockRedisService.delWithPrefix).toHaveBeenCalledTimes(2);
   });
 
   it("devrait échouer si le tempToken est invalide", async () => {
     const mockDto = { tempToken: "invalid-token", code: "12345678" };
 
+    // Le tempToken n'est pas trouvé dans Redis
     mockRedisService.getWithPrefix.mockResolvedValue(null);
 
     await expect(service.validate2FA(mockDto)).rejects.toThrow(UnauthorizedException);
@@ -82,11 +98,13 @@ describe("AuthService - validate2FA (TI)", () => {
   });
 
   it("devrait échouer si le code 2FA est incorrect", async () => {
-    const mockDto = { tempToken: "temp-token", code: "99999999" };
+    const mockDto = { tempToken: "temp-token", code: "99999999" }; // Mauvais code
     const userId = "user-id-123";
 
-    // Mock pour getTempToken - doit réussir cette fois
-    mockRedisService.getWithPrefix.mockResolvedValueOnce(userId).mockResolvedValueOnce("12345678");
+    // 1. TempToken valide
+    mockRedisService.getWithPrefix.mockResolvedValueOnce(userId);
+    // 2. Code stocké différent du code envoyé
+    mockRedisService.getWithPrefix.mockResolvedValueOnce("12345678");
 
     await expect(service.validate2FA(mockDto)).rejects.toThrow(UnauthorizedException);
   });
@@ -95,8 +113,10 @@ describe("AuthService - validate2FA (TI)", () => {
     const mockDto = { tempToken: "temp-token", code: "12345678" };
     const userId = "user-id-123";
 
-    // Mock pour getTempToken - doit réussir
-    mockRedisService.getWithPrefix.mockResolvedValueOnce(userId).mockResolvedValueOnce(null);
+    // 1. TempToken valide
+    mockRedisService.getWithPrefix.mockResolvedValueOnce(userId);
+    // 2. Code introuvable (expiré)
+    mockRedisService.getWithPrefix.mockResolvedValueOnce(null);
 
     await expect(service.validate2FA(mockDto)).rejects.toThrow(UnauthorizedException);
   });

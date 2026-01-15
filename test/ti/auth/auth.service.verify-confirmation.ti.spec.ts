@@ -1,3 +1,4 @@
+import { JwtService } from "@nestjs/jwt";
 import { Test, TestingModule } from "@nestjs/testing";
 import { MailerService } from "src/mailer/services/mailer.service";
 import { RedisService } from "src/redis/redis.module";
@@ -30,6 +31,13 @@ describe("AuthService - verifyConfirmation (TI)", () => {
           useValue: {
             getWithPrefix: jest.fn(),
             delWithPrefix: jest.fn(),
+          },
+        },
+        {
+          provide: JwtService,
+          useValue: {
+            signAsync: jest.fn().mockResolvedValue("mocked_token_string"),
+            verify: jest.fn(),
           },
         },
       ],
