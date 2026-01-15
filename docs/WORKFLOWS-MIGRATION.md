@@ -142,7 +142,7 @@ npx jest --testPathPattern="test/ti/$MODULE/.*\.ti\.spec\.ts" --runInBand
 
 ### Tests E2E
 ```bash
-npx jest --config ./jest-e2e.json --testPathPattern="test/e2e/$MODULE/.*\.e2e\.spec\.ts" --runInBand
+npx jest --testPathPattern="test/e2e/$MODULE/.*\.e2e\.spec\.ts" --runInBand
 ```
 
 ## Variables Secrets Requises

@@ -6,13 +6,13 @@ import { PrismaService } from "src/prisma/prisma.service";
 import { RedisService } from "src/redis/redis.module";
 import request from "supertest";
 
-import { CategoriesTestContext } from "../categories/categories.dataset.context.e2e";
+import { AuthTestContext } from "./auth.dataset.context.e2e";
 
 describe("POST /api/auth/login (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let redis: RedisService;
-  let testContext: CategoriesTestContext;
+  let testContext: AuthTestContext;
 
   const testUser = {
     email: "login-test@example.com",
@@ -32,7 +32,7 @@ describe("POST /api/auth/login (e2e)", () => {
     prisma = moduleFixture.get<PrismaService>(PrismaService);
     redis = moduleFixture.get<RedisService>(RedisService);
 
-    testContext = new CategoriesTestContext(prisma);
+    testContext = new AuthTestContext(prisma);
     await testContext.init();
   }, 30000);
 

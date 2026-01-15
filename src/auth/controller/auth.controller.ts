@@ -1,6 +1,14 @@
-import { BadRequestException, Body, Controller, HttpCode, Post, Query } from "@nestjs/common";
-import { ApiBadRequestResponse, ApiOkResponse, ApiResponse, ApiUnauthorizedResponse } from "@nestjs/swagger";
+import { BadRequestException, Body, Controller, Get, HttpCode, Post, Query, UseGuards } from "@nestjs/common";
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiResponse,
+  ApiUnauthorizedResponse,
+} from "@nestjs/swagger";
+import { Ctx } from "src/common/decorators/ctx.decorator";
 import { ValidationErrorResponse } from "src/common/dto/validation-error.dto";
+import { RequestContext } from "src/common/interfaces/request-context.interface";
 import { MailerService } from "src/mailer/services/mailer.service";
 import { CreateUserDto } from "src/users/dto/create-user.dto";
 import { UsersService } from "src/users/services/users.service";
@@ -13,6 +21,7 @@ import { LoginResponseDto } from "../dto/login-response.dto";
 import { LoginDto } from "../dto/login.dto";
 import { Validate2FAResponseDto } from "../dto/validate-2fa-response.dto";
 import { Validate2FADto } from "../dto/validate-2fa.dto";
+import { JwtAuthGuard } from "../guards/jwt-auth.guard";
 import { AuthService } from "../services/auth.service";
 
 @Controller("api/auth")
@@ -39,7 +48,6 @@ export class AuthController {
     if (!token) throw new BadRequestException("token is required");
     const status = await this.authService.verifyConfirmation(token);
     if (!status) throw new BadRequestException("Invalid or expired token");
-    // return this.authService.verifyConfirmation(token);
   }
 
   @Post("register/send-confirmation-email")
@@ -96,6 +104,18 @@ export class AuthController {
   })
   async validate2FA(@Body() validate2FADto: Validate2FADto): Promise<Validate2FAResponseDto> {
     return this.authService.validate2FA(validate2FADto);
+  }
+
+  @Get("me")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: "Retourne les infos de l'utilisateur courant via le Token" })
+  getProfile(@Ctx() ctx: RequestContext<unknown>): { message: string; userId: string; method: string } {
+    return {
+      message: "Vous êtes authentifié avec succès",
+      userId: ctx.userId,
+      method: ctx.method,
+    };
   }
 
   @Post("forgot-password")

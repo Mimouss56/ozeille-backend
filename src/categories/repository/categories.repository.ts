@@ -1,46 +1,58 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { Category } from "src/generated/prisma/client";
 import { PrismaService } from "src/prisma/prisma.service";
 
 import { CreateCategoryRequest } from "../dto/create-category.dto";
 import { UpdateCategoryRequest } from "../dto/update-category.dto";
-import { CategoriesBudgetDoesntExistException } from "../exceptions/categories.budget-does-exist.exception";
 
 @Injectable()
 export class CategoriesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getAll(): Promise<Category[]> {
-    return this.prisma.category.findMany();
+  async getAll(userId: string): Promise<Category[]> {
+    return this.prisma.category.findMany({
+      where: { userId }, // 🔒 Filtre par utilisateur
+      orderBy: { label: "asc" },
+    });
   }
 
-  async create(data: CreateCategoryRequest): Promise<Category> {
-    const { budgetId, ...rest } = data;
-    if (!budgetId) {
-      throw new CategoriesBudgetDoesntExistException();
-    }
+  async create(userId: string, category: CreateCategoryRequest): Promise<Category> {
     return this.prisma.category.create({
       data: {
-        ...rest,
-        budget: {
-          connect: { id: budgetId },
-        },
+        ...category,
+        userId,
       },
     });
   }
 
-  getById(id: string): Promise<Category | null> {
-    return this.prisma.category.findUnique({ where: { id } });
-  }
-
-  updateOne(id: string, data: UpdateCategoryRequest): Promise<Category> {
-    return this.prisma.category.update({
-      where: { id },
-      data: data,
+  async getById(userId: string, id: string): Promise<Category | null> {
+    return this.prisma.category.findFirst({
+      where: { id, userId },
     });
   }
 
-  remove(id: string): Promise<Category> {
-    return this.prisma.category.delete({ where: { id } });
+  async updateOne(userId: string, id: string, data: UpdateCategoryRequest): Promise<Category> {
+    const existingCategory = await this.getById(userId, id);
+
+    if (!existingCategory) {
+      throw new NotFoundException(`Category with ID ${id} not found`);
+    }
+
+    return this.prisma.category.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async remove(userId: string, id: string): Promise<Category> {
+    const existingCategory = await this.getById(userId, id);
+
+    if (!existingCategory) {
+      throw new NotFoundException(`Category with ID ${id} not found`);
+    }
+
+    return this.prisma.category.delete({
+      where: { id },
+    });
   }
 }

@@ -1,23 +1,28 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put, UseGuards } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
-  ApiConflictResponse,
+  ApiBearerAuth,
   ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiTags,
 } from "@nestjs/swagger";
+import { JwtAuthGuard } from "src/auth/guards/jwt-auth.guard";
+import { Ctx } from "src/common/decorators/ctx.decorator";
 import { ErrorResponse } from "src/common/dto/base-error.dto";
 import { ValidationErrorResponse } from "src/common/dto/validation-error.dto";
+import { RequestContext } from "src/common/interfaces/request-context.interface";
 import { Category } from "src/generated/prisma/client";
 
 import { CategoryResponse } from "../dto/category.dto";
-import { CreateCategoryRequest } from "../dto/create-category.dto";
-import { UpdateCategoryRequest } from "../dto/update-category.dto";
+import { CreateCategoryDto, CreateCategoryRequest } from "../dto/create-category.dto";
+import { UpdateCategoryDto, UpdateCategoryRequest } from "../dto/update-category.dto";
 import { CategoriesService } from "../services/categories.service";
 
 @ApiTags("Categories")
 @Controller("api/categories")
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
@@ -27,8 +32,8 @@ export class CategoriesController {
     isArray: true,
     description: "List of all categories",
   })
-  async findAll(): Promise<Category[]> {
-    return this.categoriesService.findAll();
+  async findAll(@Ctx() ctx: RequestContext<unknown>): Promise<Category[]> {
+    return this.categoriesService.findAll(ctx);
   }
 
   @Post()
@@ -40,12 +45,11 @@ export class CategoriesController {
     description: "Validation failed",
     type: ValidationErrorResponse,
   })
-  @ApiConflictResponse({
-    description: "A category with this label already exists for this budget",
-    type: ErrorResponse,
-  })
-  async create(@Body() createCategoryRequest: CreateCategoryRequest): Promise<Category> {
-    return this.categoriesService.create(createCategoryRequest);
+  async create(
+    @Body() _createCategoryRequest: CreateCategoryRequest,
+    @Ctx() ctx: RequestContext<CreateCategoryDto>,
+  ): Promise<Category> {
+    return this.categoriesService.create(ctx);
   }
 
   @Get(":id")
@@ -57,8 +61,8 @@ export class CategoriesController {
     description: "The category with the given ID was not found.",
     type: ErrorResponse,
   })
-  async findOne(@Param("id", ParseUUIDPipe) id: string): Promise<Category> {
-    return this.categoriesService.findOneById(id);
+  async findOne(@Param("id", ParseUUIDPipe) id: string, @Ctx() ctx: RequestContext<unknown>): Promise<Category> {
+    return this.categoriesService.findOne(ctx, id);
   }
 
   @Put(":id")
@@ -76,9 +80,10 @@ export class CategoriesController {
   })
   async update(
     @Param("id", ParseUUIDPipe) id: string,
-    @Body() updateCategoryRequest: UpdateCategoryRequest,
+    @Body() _updateCategoryRequest: UpdateCategoryRequest,
+    @Ctx() ctx: RequestContext<UpdateCategoryDto>,
   ): Promise<Category> {
-    return this.categoriesService.update(id, updateCategoryRequest);
+    return this.categoriesService.update(ctx, id);
   }
 
   @Delete(":id")
@@ -90,7 +95,7 @@ export class CategoriesController {
     description: "The category with the given ID was not found.",
     type: ErrorResponse,
   })
-  async remove(@Param("id", ParseUUIDPipe) id: string): Promise<Category> {
-    return this.categoriesService.remove(id);
+  async remove(@Param("id", ParseUUIDPipe) id: string, @Ctx() ctx: RequestContext<unknown>): Promise<Category> {
+    return this.categoriesService.remove(ctx, id);
   }
 }
