@@ -151,6 +151,10 @@ MAILER_FROM=no-reply@lapince.com
 # MAILER_PORT=587
 # MAILER_USER=your-email@gmail.com
 # MAILER_PASSWORD=your-app-password
+
+# Frontend URL
+FRONTEND_URL=http://localhost:5173
+API_URL=http://localhost:3000
 ```
 
 ### Constantes Redis
