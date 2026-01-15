@@ -1,5 +1,6 @@
 import { CreateCategoryDto } from "src/categories/dto/create-category.dto";
-import { CategoriesBudgetDoesntExistException } from "src/categories/exceptions/categories.budget-does-exist.exception";
+// L'exception n'est plus levée manuellement par le repo, on peut retirer l'import ou le laisser si utilisé ailleurs
+// import { CategoriesBudgetDoesntExistException } from "src/categories/exceptions/categories.budget-does-exist.exception";
 import { CategoriesRepository } from "src/categories/repository/categories.repository";
 import { PrismaService } from "src/prisma/prisma.service";
 
@@ -20,20 +21,8 @@ describe("CategoriesRepository - create (TI)", () => {
     repository = new CategoriesRepository(mockPrisma);
   });
 
-  it("should return CategoriesBudgetDoesntExistException", async () => {
-    const dto = {
-      label: "Test Catégorie",
-    } as CreateCategoryDto;
-    let exception;
-    try {
-      await repository.create(dto);
-    } catch (error) {
-      exception = error;
-    }
-    expect(exception).toBeInstanceOf(CategoriesBudgetDoesntExistException);
-  });
-
   it("doit créer une catégorie avec tous les champs attendus (cas success)", async () => {
+    // 1. Mock du retour Prisma
     (mockPrisma.category.create as jest.Mock).mockResolvedValue({
       id: "cat-1",
       label: "Test Catégorie",
@@ -42,23 +31,30 @@ describe("CategoriesRepository - create (TI)", () => {
       userId: "user-1",
       limitAmount: 100,
     });
+
+    // 2. Préparation des données
+    const userId = "user-1";
+    // Le DTO ne contient généralement PAS le userId (il vient du token)
     const dto: CreateCategoryDto = {
       label: "Test Catégorie",
       budgetId: "budget-1",
       color: "#FF0000",
-      userId: "user-1",
+      // userId: "user-1", // On l'enlève du DTO entrant pour être réaliste
       limitAmount: 100,
+      userId: null,
     };
-    const result = await repository.create(dto);
+
+    // 3. Exécution avec la NOUVELLE signature (userId, dto)
+    const result = await repository.create(userId, dto);
+
+    // 4. Vérification de l'appel Prisma (Mode Scalaire)
     expect(mockPrisma.category.create).toHaveBeenCalledWith({
       data: {
-        label: "Test Catégorie",
-        color: "#FF0000",
-        userId: "user-1",
-        limitAmount: 100,
-        budget: { connect: { id: "budget-1" } },
+        ...dto,
+        userId,
       },
     });
+
     expect(result).toEqual({
       id: "cat-1",
       label: "Test Catégorie",
