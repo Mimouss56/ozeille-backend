@@ -9,6 +9,7 @@ model User {
   updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(0)
 
   budgets     Budget[]
+  categories Category[]
 
   @@map("users")
 }

@@ -23,7 +23,7 @@ export class BudgetsRepository {
     return this.prisma.budget.create({
       data: {
         ...budget,
-        user: this.connectUser(userId),
+        user: { connect: { id: userId } },
       },
     });
   }
