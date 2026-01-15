@@ -46,7 +46,7 @@ describe("POST /api/auth/login (e2e)", () => {
   }, 10000);
 
   beforeEach(async () => {
-    await prisma.user.delete({
+    await prisma.user.deleteMany({
       where: { email: testUser.email },
     });
 
