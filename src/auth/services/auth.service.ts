@@ -1,4 +1,6 @@
 import { Injectable, Logger, UnauthorizedException } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+// 👈 IMPORT IMPORTANT
 import * as bcrypt from "bcrypt";
 import { randomBytes, randomUUID } from "crypto";
 import { MailerService } from "src/mailer/services/mailer.service";
@@ -19,6 +21,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly mailerService: MailerService,
     private readonly redisService: RedisService,
+    private readonly jwtService: JwtService, // 👈 INJECTION DU SERVICE JWT
   ) {}
 
   /**
@@ -66,11 +69,14 @@ export class AuthService {
     await this.redisService.delWithPrefix(RedisKey.TWO_FA, userId);
     await this.redisService.delWithPrefix(RedisKey.TEMP_TOKEN, validate2FADto.tempToken);
 
-    // Get user for email
+    // Get user for email (Optionnel ici si on a juste besoin de l'ID pour le token,
+    // mais utile si vous voulez vérifier que le user est toujours actif)
     const user = await this.usersService.findById(userId);
-
+    if (!user) {
+      throw new UnauthorizedException("Utilisateur non trouvé");
+    }
     // Generate JWT tokens
-    return this.generateTokens(userId, user.email);
+    return this.generateTokens(userId);
   }
 
   /**
@@ -141,7 +147,6 @@ export class AuthService {
     if (!userId) {
       throw new UnauthorizedException("Token de réinitialisation invalide ou expiré");
     }
-    //
 
     // Hash new password
     const hashedPassword = await bcrypt.hash(resetPassword.password, 10);
@@ -182,23 +187,14 @@ export class AuthService {
     return Math.floor(10000000 + Math.random() * 90000000).toString();
   }
 
-  private generateTokens(userId: string, email: string): { accessToken: string; refreshToken: string } {
-    // Simple token generation (to be replaced with proper JWT)
-    const accessToken = this.createSimpleToken(userId, email, "access");
-    const refreshToken = this.createSimpleToken(userId, email, "refresh");
+  private async generateTokens(userId: string): Promise<{ accessToken: string; refreshToken: string }> {
+    const payload = { sub: userId };
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload, { expiresIn: "1h" }), // Access Token (1h)
+      this.jwtService.signAsync(payload, { expiresIn: "1d" }), // Refresh Token (1j)
+    ]);
 
     return { accessToken, refreshToken };
-  }
-
-  private createSimpleToken(userId: string, email: string, type: "access" | "refresh"): string {
-    const payload = {
-      sub: userId,
-      email,
-      type,
-      iat: Date.now(),
-      exp: Date.now() + (type === "access" ? 3600000 : 604800000), // 1h for access, 7d for refresh
-    };
-
-    return Buffer.from(JSON.stringify(payload)).toString("base64");
   }
 }
