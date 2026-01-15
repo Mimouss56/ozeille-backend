@@ -1,18 +1,17 @@
 import { type INestApplication } from "@nestjs/common";
+import { Test, TestingModule } from "@nestjs/testing";
+import { AppModule } from "src/app.module";
+import { PrismaService } from "src/prisma/prisma.service";
+import { RedisService } from "src/redis/redis.module";
 import request from "supertest";
 
 import { AuthTestContext } from "./auth.dataset.context.e2e";
-import { PrismaService } from "src/prisma/prisma.service";
-import { RedisService } from "src/redis/redis.module";
-import { CategoriesTestContext } from "../categories/categories.dataset.context.e2e";
-import { TestingModule, Test } from "@nestjs/testing";
-import { AppModule } from "src/app.module";
 
 describe("POST /api/auth/register/confirm (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let redis: RedisService;
-  let testContext: CategoriesTestContext;
+  let testContext: AuthTestContext;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -25,35 +24,32 @@ describe("POST /api/auth/register/confirm (e2e)", () => {
     prisma = moduleFixture.get<PrismaService>(PrismaService);
     redis = moduleFixture.get<RedisService>(RedisService);
 
-    testContext = new CategoriesTestContext(prisma);
+    testContext = new AuthTestContext(prisma);
     await testContext.init();
   }, 30000);
 
   afterAll(async () => {
-    // --- NETTOYAGE DU DATASET ---
-    if (testContext) await testContext.cleanup();
-
     if (redis) await redis.disconnect();
     if (prisma) await prisma.$disconnect();
-    await app.close();
+    await testContext.cleanup();
   }, 10000);
 
   it("devrait confirmer l'email avec un token valide", async () => {
-    await redis.set(`confirm-email-token:${testToken}`, testEmail);
+    await redis.set(`confirm-email-token:${testContext.testToken}`, testContext.testUser.email);
 
     const response = await request(app.getHttpServer())
       .post("/api/auth/register/confirm")
-      .query({ token: testToken })
+      .query({ token: testContext.testToken })
       .expect(204);
 
     expect(response.body).toEqual({});
 
-    const user = await ctx.prisma.user.findUnique({
-      where: { email: testEmail },
+    const user = await prisma.user.findUnique({
+      where: { email: testContext.testUser.email },
     });
     expect(user?.confirmedAt).not.toBeNull();
 
-    const redisValue = await ctx.redis.get(`confirm-email-token:${testToken}`);
+    const redisValue = await redis.get(`confirm-email-token:${testContext.testToken}`);
     expect(redisValue).toBeNull();
   });
 

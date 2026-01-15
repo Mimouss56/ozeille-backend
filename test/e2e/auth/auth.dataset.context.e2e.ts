@@ -2,11 +2,15 @@ import { PrismaService } from "src/prisma/prisma.service";
 
 export class AuthTestContext {
   public userId: string;
-  public readonly email = "e2e-auth-@test.com";
-  public readonly password = "Password123!";
-  public readonly firstName = "John";
-  public readonly lastName = "Doe";
 
+  public readonly testUser = {
+    email: "e2e-auth-@test.com",
+    password: "Password123!",
+    firstName: "Validate2FA",
+    lastName: "Doe",
+    firstname: "John",
+  };
+  public readonly testToken = "valid-confirmation-token";
   constructor(private prisma: PrismaService) {}
 
   /**
@@ -15,13 +19,7 @@ export class AuthTestContext {
   async init(): Promise<void> {
     // Création d'un utilisateur pour les tests
     const user = await this.prisma.user.create({
-      data: {
-        email: this.email,
-        password: this.password,
-        firstName: this.firstName,
-        lastName: this.lastName,
-        confirmedAt: null,
-      },
+      data: this.testUser,
     });
     this.userId = user.id;
   }
@@ -30,6 +28,6 @@ export class AuthTestContext {
    * Nettoie toutes les données liées à ce contexte
    */
   async cleanup(): Promise<void> {
-    await this.prisma.user.deleteMany({ where: { email: this.email } });
+    await this.prisma.user.deleteMany({ where: { email: this.testUser.email } });
   }
 }
