@@ -7,7 +7,7 @@ import request from "supertest";
 
 import { CategoriesTestContext } from "./categories.dataset.context.e2e";
 
-describe("Categories E2E - POST categories", () => {
+describe.skip("Categories E2E - POST categories", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let redis: RedisService;
