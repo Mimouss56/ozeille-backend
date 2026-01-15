@@ -8,7 +8,6 @@ export class AuthTestContext {
     password: "Password123!",
     firstName: "Validate2FA",
     lastName: "Doe",
-    firstname: "John",
   };
   public readonly testToken = "valid-confirmation-token";
   constructor(private prisma: PrismaService) {}
