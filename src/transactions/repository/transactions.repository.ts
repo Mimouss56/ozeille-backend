@@ -15,11 +15,11 @@ export class TransactionsRepository {
     limit,
     page,
     "order[dueAt]": dueAt,
-    "exists[pointedAt]": pointedAt,
+    "exists[pointedAt]": _pointedAt,
   }: TransactionFilters): Promise<PaginatedDatabaseResponse<Transaction>> {
     const skip = (page - 1) * limit;
     const take = limit;
-    const isPointedAt = pointedAt ? { not: null } : null;
+    // const isPointedAt = pointedAt ? { not: null } : null;
 
     const [transactions, count] = await this.prisma.$transaction([
       this.prisma.transaction.findMany({
@@ -28,14 +28,14 @@ export class TransactionsRepository {
         orderBy: {
           dueAt: dueAt,
         },
-        where: { pointedAt: isPointedAt },
+        // where: { pointedAt: isPointedAt },
         include: { category: true },
       }),
       this.prisma.transaction.count({
         orderBy: {
           dueAt: dueAt,
         },
-        where: { pointedAt: isPointedAt },
+        // where: { pointedAt: isPointedAt },
       }),
     ]);
 
