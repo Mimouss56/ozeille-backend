@@ -1,17 +1,18 @@
 import { type INestApplication } from "@nestjs/common";
-import { Test, TestingModule } from "@nestjs/testing";
-import { AppModule } from "src/app.module";
+import request from "supertest";
+
+import { AuthTestContext } from "./auth.dataset.context.e2e";
 import { PrismaService } from "src/prisma/prisma.service";
 import { RedisService } from "src/redis/redis.module";
-import request from "supertest";
+import { CategoriesTestContext } from "../categories/categories.dataset.context.e2e";
+import { TestingModule, Test } from "@nestjs/testing";
+import { AppModule } from "src/app.module";
 
 describe("POST /api/auth/register/confirm (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let redis: RedisService;
-
-  const testEmail = "confirm-test@example.com";
-  const testToken = "test-token-123";
+  let testContext: CategoriesTestContext;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -23,32 +24,18 @@ describe("POST /api/auth/register/confirm (e2e)", () => {
 
     prisma = moduleFixture.get<PrismaService>(PrismaService);
     redis = moduleFixture.get<RedisService>(RedisService);
+
+    testContext = new CategoriesTestContext(prisma);
+    await testContext.init();
   }, 30000);
 
   afterAll(async () => {
-    await redis.disconnect();
-    await prisma.$disconnect();
+    // --- NETTOYAGE DU DATASET ---
+    if (testContext) await testContext.cleanup();
+
+    if (redis) await redis.disconnect();
+    if (prisma) await prisma.$disconnect();
     await app.close();
-  }, 10000);
-
-  beforeEach(async () => {
-    await prisma.user.deleteMany({ where: { email: testEmail } });
-    await prisma.user.create({
-      data: {
-        email: testEmail,
-        password: "hashedPassword123",
-        firstName: "Test",
-        lastName: "User",
-      },
-    });
-  });
-
-  afterEach(async () => {
-    try {
-      await redis.del(`confirm-email-token:${testToken}`);
-    } catch (error) {
-      console.warn("Failed to clean Redis in afterEach:", error);
-    }
   }, 10000);
 
   it("devrait confirmer l'email avec un token valide", async () => {
@@ -61,12 +48,12 @@ describe("POST /api/auth/register/confirm (e2e)", () => {
 
     expect(response.body).toEqual({});
 
-    const user = await prisma.user.findUnique({
+    const user = await ctx.prisma.user.findUnique({
       where: { email: testEmail },
     });
     expect(user?.confirmedAt).not.toBeNull();
 
-    const redisValue = await redis.get(`confirm-email-token:${testToken}`);
+    const redisValue = await ctx.redis.get(`confirm-email-token:${testToken}`);
     expect(redisValue).toBeNull();
   });
 

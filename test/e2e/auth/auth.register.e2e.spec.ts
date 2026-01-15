@@ -1,16 +1,15 @@
 import { HttpStatus, type INestApplication } from "@nestjs/common";
-import { Test, TestingModule } from "@nestjs/testing";
-import { AppModule } from "src/app.module";
 import { PrismaExceptionFilter } from "src/common/filters/prisma-exception.filter";
 import { ZodValidationExceptionFilter } from "src/common/filters/validation.filter";
 import { PrismaService } from "src/prisma/prisma.service";
-import { RedisService } from "src/redis/redis.module";
 import request from "supertest";
+
+import { AuthTestContext } from "./auth.dataset.context.e2e";
 
 describe("POST /api/auth/register (e2e)", () => {
   let app: INestApplication;
-  let prisma: PrismaService;
-  let redis: RedisService;
+  let ctx: AuthTestContext;
+  let prismaService: PrismaService;
 
   const validUser = {
     email: "test@example.com",
@@ -21,29 +20,19 @@ describe("POST /api/auth/register (e2e)", () => {
   };
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-
+    ctx = new AuthTestContext(prismaService);
+    await ctx.init();
+    app = ctx.app;
     // Ajoute les filtres globaux comme dans main.ts
     app.useGlobalFilters(new ZodValidationExceptionFilter(), new PrismaExceptionFilter());
-
-    await app.init();
-
-    prisma = moduleFixture.get<PrismaService>(PrismaService);
-    redis = moduleFixture.get<RedisService>(RedisService);
   }, 30000);
 
   afterAll(async () => {
-    await redis.disconnect();
-    await prisma.$disconnect();
-    await app.close();
+    await ctx.cleanup();
   }, 10000);
 
   beforeEach(async () => {
-    await prisma.user.deleteMany({ where: { email: validUser.email } });
+    await ctx.deleteUserByEmail(validUser.email);
   });
 
   it("devrait créer un utilisateur avec des données valides", async () => {
@@ -51,7 +40,7 @@ describe("POST /api/auth/register (e2e)", () => {
 
     expect(response.body).toEqual({});
 
-    const user = await prisma.user.findUnique({
+    const user = await ctx.prisma.user.findUnique({
       where: { email: validUser.email },
     });
     expect(user).toBeDefined();
