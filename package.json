@@ -17,7 +17,7 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage --coverageThreshold='{\"global\":{\"lines\":70,\"statements\":70}}'",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand --detectOpenHandles",
-    "test:e2e": "jest --config ./jest-e2e.json",
+    "test:e2e": "jest",
     "test:ti": "jest --testPathPattern=\"test/ti/.*\\.ti\\.spec\\.ts$\" --runInBand --detectOpenHandles",
     "test:ti:module": "jest --testPathPattern=\"test/ti/$MODULE/.*\\.ti\\.spec\\.ts$\" --runInBand --detectOpenHandles",
     "test:e2e:module": "jest --testPathPattern=\"test/e2e/$MODULE/.*\\.e2e\\.spec\\.ts$\" --runInBand --detectOpenHandles",
@@ -85,25 +85,5 @@
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": "test",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    },
-    "collectCoverageFrom": [
-      "**/*.(t|j)s"
-    ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node",
-    "moduleNameMapper": {
-      "^src/(.*)$": "<rootDir>/../src/$1"
-    }
   }
 }

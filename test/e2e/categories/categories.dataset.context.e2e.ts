@@ -31,9 +31,9 @@ export class CategoriesTestContext {
       data: {
         label: this.budgetLabel,
         color: "#3498db",
-        // userId: {
-        //   connect: { id: this.userId },
-        // },
+        user: {
+          connect: { id: this.userId },
+        },
       },
     });
     this.budgetId = budget.id;
@@ -54,16 +54,8 @@ export class CategoriesTestContext {
    * Nettoie toutes les données liées à ce contexte
    */
   async cleanup(): Promise<void> {
-    // 1. Supprimer les catégories du budget
-    await this.prisma.category.deleteMany({
-      where: { budgetId: this.budgetId },
-    });
-
-    // 2. Supprimer le budget
-    await this.prisma.budget.deleteMany({
-      where: { id: this.budgetId },
-    });
-
+    await this.prisma.category.deleteMany({ where: { userId: this.userId } });
+    await this.prisma.budget.deleteMany({ where: { userId: this.userId } });
     await this.prisma.user.deleteMany({ where: { id: this.userId } });
   }
 }
