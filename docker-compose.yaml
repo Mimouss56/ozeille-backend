@@ -1,59 +1,42 @@
 services:
-  users-api:
+  api:
     build:
-      context: ./apps/users-service
+      context: .
       dockerfile: docker/Dockerfile
       target: development
     volumes:
-      - ./apps/users-service:/home/node/app
+      - .:/home/node/app
+#      - /home/node/app/node_modules
     environment:
-      DATABASE_URL: "postgresql://${USERS_DB_USER:-ozeille}:${USERS_DB_PASSWORD:-ozeille}@users-db:5432/${USERS_DB_NAME:-user}?schema=public"
+      DATABASE_URL: ${DATABASE_URL:-postgresql://ozeille:ozeille@db:5432/ozeille}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MAILER_HOST: mailpit
+      MAILER_PORT: 1025
+      MAILER_FROM: ${MAILER_FROM:-no-reply@example.com}
+      NODE_ENV: development
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      
     ports:
-      - ${USERS_API_PORT:-3000}:3000
+      - ${API_PORT:-3000}:3000
     depends_on:
-      users-db:
-         condition: service_healthy
-
-  users-db:
-    image: postgres:17
-    environment:
-      POSTGRES_PASSWORD: ${USERS_DB_PASSWORD:-ozeille}
-      POSTGRES_USER: ${USERS_DB_USER:-ozeille}
-      POSTGRES_DB: ${USERS_DB_NAME:-user}
-    volumes:
-      - user-db-data:/var/lib/postgresql/data
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER}" ]
-      interval: 30s
-      timeout: 60s
-      retries: 5
-      start_period: 80s
-
-  transactions-api:
-    build:
-      context: ./apps/transactions-service
-      dockerfile: docker/Dockerfile
-      target: development
-    volumes:
-      - ./apps/transactions-service:/home/node/app
-    ports:
-      - ${TRANSACTIONS_API_PORT:-3001}:3000
-    environment:
-      "DATABASE_URL": "postgresql://${TRANSACTIONS_DB_USER:-ozeille}:${TRANSACTIONS_DB_PASSWORD:-ozeille}@transactions-db:5432/${TRANSACTIONS_DB_NAME:-ozeille}?schema=public"
-    depends_on:
-      transactions-db:
+      db:
         condition: service_healthy
+      redis:
+        condition: service_started
+      mailpit:
+        condition: service_started
 
-  transactions-db:
+  db:
     image: postgres:17
     environment:
-      POSTGRES_PASSWORD: ${TRANSACTIONS_DB_PASSWORD:-ozeille}
-      POSTGRES_USER: ${TRANSACTIONS_DB_USER:-ozeille}
-      POSTGRES_DB: ${TRANSACTIONS_DB_NAME:-ozeille}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-ozeille}
+      POSTGRES_USER: ${DATABASE_USER:-ozeille}
+      POSTGRES_DB: ${DATABASE_NAME:-ozeille}
     volumes:
-      - transaction-db-data:/var/lib/postgresql/data
+      - db-data:/var/lib/postgresql/data
     ports:
-      - "7002:5432"
+      - ${DATABASE_PORT:-5432}:5432
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER}" ]
       interval: 30s
@@ -63,6 +46,10 @@ services:
 
   redis:
     image: redis:8-alpine
+    ports:
+      - ${REDIS_PORT:-6379}:6379
+    volumes:
+      - redis-data:/data
 
   mailpit:
     image: axllent/mailpit:v1.27
@@ -71,5 +58,5 @@ services:
       - ${MAILPIT_SMTP_PORT:-1025}:1025
 
 volumes:
-  user-db-data:
-  transaction-db-data:
+  db-data:
+  redis-data:

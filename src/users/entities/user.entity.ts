@@ -1,0 +1,9 @@
+export class UserEntity {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  createdAt: Date;
+  updatedAt: Date;
+  confirmedAt?: Date | null;
+}

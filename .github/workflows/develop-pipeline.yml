@@ -26,38 +26,56 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: "npm"
+          cache-dependency-path: "package-lock.json"
 
-      - name: Install dependencies (transactions-service)
+      - name: Start PostgreSQL for tests
         run: |
-          cd apps/transactions-service
-          npm ci
+          docker run --name postgres_ci \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_USER=postgres \
+            -e POSTGRES_DB=testdb \
+            -p 5432:5432 \
+            -d postgres:17-alpine
+          sleep 5
 
-      - name: Install dependencies (users-service)
+      - name: Start Redis for tests
         run: |
-          cd apps/users-service
-          npm ci
+          docker run --name redis_ci \
+            -p 6379:6379 \
+            -d redis:8-alpine
+          sleep 2
 
-      - name: Lint (transactions-service)
+      - name: Start Mailpit for tests
         run: |
-          cd apps/transactions-service
-          npm run lint --if-present
+          docker run --name mailpit_ci \
+            -p 1025:1025 \
+            -d axllent/mailpit:v1.27
+          sleep 2
 
-      - name: Lint (users-service)
-        run: |
-          cd apps/users-service
-          npm run lint --if-present
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Tests (transactions-service)
-        run: |
-          cd apps/transactions-service
-          npx prisma generate
-          npm test -- --passWithNoTests
+      - name: Run Migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
 
-      - name: Tests (users-service)
-        run: |
-          cd apps/users-service
-          npx prisma generate
-          npm test -- --passWithNoTests
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Run Tests
+        run: npm test -- --passWithNoTests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          MAILER_HOST: localhost
+          MAILER_PORT: 1025
+          NODE_ENV: test
 
       - name: SonarQube Full Scan
         run: |
@@ -126,6 +144,34 @@ jobs:
           # Placeholder: build and push images for services and frontend
           echo "docker build/push steps here (implement using npm scripts or Dockerfiles)"
 
+  # artillery-load-tests:
+  #   needs: full-audit
+  #   uses: ./.github/workflows/artillery-tests.yml
+  #   with:
+  #     api-url: "http://localhost:3000"
+  #   secrets: inherit
+
+  semantic-release:
+    needs: [full-audit]
+    runs-on: ubuntu-latest
+    outputs:
+      tag-pushed: ${{ steps.semantic.outputs.tag-pushed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: "package-lock.json"
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Semantic Release
         id: semantic
         run: |
@@ -135,29 +181,32 @@ jobs:
             echo "tag-pushed=false" >> $GITHUB_OUTPUT
           else
             echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
-            npx semantic-release || true
-            echo "tag-pushed=false" >> $GITHUB_OUTPUT
+            if npx semantic-release; then
+              echo "tag-pushed=true" >> $GITHUB_OUTPUT
+            else
+              echo "tag-pushed=false" >> $GITHUB_OUTPUT
+            fi
           fi
 
-  # merge-to-main:
-  #   needs: full-audit
-  #   runs-on: ubuntu-latest
-  #   if: needs.full-audit.outputs.tag-pushed == 'true' || needs.full-audit.outputs.tag-pushed == 'false'
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v5
-  #       with:
-  #         fetch-depth: 0
+  merge-to-main:
+    needs: semantic-release
+    runs-on: ubuntu-latest
+    if: needs.semantic-release.outputs.tag-pushed == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
-  #     - name: Fast-forward develop -> main
-  #       run: |
-  #         git config user.email "github-actions[bot]@users.noreply.github.com"
-  #         git config user.name "github-actions[bot]"
-  #         git fetch origin main
-  #         git fetch origin develop
-  #         git checkout main
-  #         git merge --ff-only origin/develop || {
-  #           echo "Fast-forward failed (conflict or non-fast-forward)";
-  #           exit 1;
-  #         }
-  #         git push origin main
+      - name: Fast-forward develop -> main
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git fetch origin main
+          git fetch origin develop
+          git checkout main
+          git merge --ff-only origin/develop || {
+            echo "Fast-forward failed (conflict or non-fast-forward)";
+            exit 1;
+          }
+          git push origin main

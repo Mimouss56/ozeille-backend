@@ -1,0 +1,112 @@
+name: Artillery Load Tests
+
+on:
+  workflow_call:
+    inputs:
+      api-url:
+        description: "URL of the API to test"
+        required: false
+        type: string
+        default: "http://localhost:3000"
+  workflow_dispatch:
+    inputs:
+      api-url:
+        description: "URL of the API to test"
+        required: false
+        default: "http://localhost:3000"
+
+jobs:
+  artillery-load-tests:
+    name: API Load Testing
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Database
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
+
+      - name: Build Application
+        run: npm run build
+
+      - name: Start API and Wait
+        run: |
+          # Démarrage en arrière-plan
+          npm run start:prod > api.log 2>&1 &
+          
+          # Attente robuste que le port 3000 soit ouvert (max 60s)
+          echo "Waiting for API on port 3000..."
+          npx wait-on tcp:3000 --timeout 60000
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          NODE_ENV: production
+          PORT: 3000
+          # Ajoutez ici JWT_SECRET si nécessaire pour que l'app démarre
+
+      - name: Run Artillery
+        run: |
+          npm install -g artillery
+          
+          # Création d'un test minimaliste si aucun fichier n'existe
+          if [ ! -f "artillery.yml" ]; then
+            echo "Creating default artillery config..."
+            cat > artillery.yml << EOF
+          config:
+            target: "${{ inputs.api-url }}"
+            phases:
+              - duration: 10
+                arrivalRate: 2
+                name: "Smoke Test"
+          scenarios:
+            - flow:
+                - get:
+                    url: "/api"
+          EOF
+          fi
+
+          # Lancement du test
+          artillery run artillery.yml --output artillery-report.json
+
+      - name: Generate and Upload Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: artillery-report
+          path: |
+            artillery-report.json
+            api.log
+          retention-days: 7

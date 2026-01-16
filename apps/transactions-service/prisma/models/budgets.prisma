@@ -1,9 +1,0 @@
-model Budget {
-  id    String  @id @default(uuid())
-  label String  @db.VarChar(30)
-  color String? @db.VarChar(7) // Pour stocker le code HEX de la couleur ex: #FFFFFF 
-
-  categories Category[]
-
-  @@map("budgets")
-}

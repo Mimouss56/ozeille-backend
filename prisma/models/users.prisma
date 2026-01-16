@@ -1,0 +1,15 @@
+model User {
+  id          String    @id @default(uuid())
+  email       String    @unique @db.VarChar(50)
+  password    String    @db.VarChar(255)
+  firstName   String    @map("first_name") @db.VarChar(30)
+  lastName    String    @map("last_name") @db.VarChar(30)
+  confirmedAt DateTime? @map("confirmed_at")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(0)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(0)
+
+  budgets     Budget[]
+  categories Category[]
+
+  @@map("users")
+}
