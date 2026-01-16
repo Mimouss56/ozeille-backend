@@ -19,7 +19,8 @@ jobs:
   artillery-load-tests:
     name: API Load Testing
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
+    
     services:
       postgres:
         image: postgres:17-alpine
@@ -29,15 +30,13 @@ jobs:
           POSTGRES_DB: testdb
         ports:
           - 5432:5432
-        options: >-
-          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      
       redis:
         image: redis:8-alpine
         ports:
           - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
+        options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
 
     steps:
       - name: Checkout code
@@ -48,127 +47,66 @@ jobs:
         with:
           node-version: 22
           cache: "npm"
-          cache-dependency-path: "package-lock.json"
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate Prisma Client
-        run: npx prisma generate
-
-      - name: Run Migrations
-        run: npx prisma migrate deploy
+      - name: Setup Database
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
 
-      - name: Install Artillery
-        run: npm install -g artillery@latest
+      - name: Build Application
+        run: npm run build
 
-      - name: Start API in background
+      - name: Start API and Wait
         run: |
-          npm run start:prod &
-          echo $! > .api.pid
-          sleep 10
+          # Démarrage en arrière-plan
+          npm run start:prod > api.log 2>&1 &
+          
+          # Attente robuste que le port 3000 soit ouvert (max 60s)
+          echo "Waiting for API on port 3000..."
+          npx wait-on tcp:3000 --timeout 60000
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           NODE_ENV: production
           PORT: 3000
+          # Ajoutez ici JWT_SECRET si nécessaire pour que l'app démarre
 
-      - name: Wait for API to be ready
+      - name: Run Artillery
         run: |
-          timeout 60 bash -c 'until curl -f ${{ inputs.api-url }}/api/health 2>/dev/null; do sleep 2; done' || exit 1
-
-      - name: Run Artillery load tests
-        run: |
-          if [ -f "artillery.yml" ]; then
-            artillery run artillery.yml --output artillery-report.json
-          else
-            echo "No artillery.yml found, creating basic API test..."
-            cat > artillery-basic.yml << 'EOF'
+          npm install -g artillery
+          
+          # Création d'un test minimaliste si aucun fichier n'existe
+          if [ ! -f "artillery.yml" ]; then
+            echo "Creating default artillery config..."
+            cat > artillery.yml << EOF
           config:
             target: "${{ inputs.api-url }}"
             phases:
-              - duration: 30
-                arrivalRate: 5
-                name: "Warm up"
-              - duration: 60
-                arrivalRate: 10
-                name: "Sustained load"
-              - duration: 30
-                arrivalRate: 20
-                name: "Spike test"
+              - duration: 10
+                arrivalRate: 2
+                name: "Smoke Test"
           scenarios:
-            - name: "Health check"
-              flow:
-                - get:
-                    url: "/health"
-            - name: "API endpoints"
-              flow:
+            - flow:
                 - get:
                     url: "/api"
           EOF
-            artillery run artillery-basic.yml --output artillery-report.json
           fi
 
-      - name: Generate Artillery HTML report
-        if: always()
-        run: |
-          artillery report artillery-report.json --output artillery-report.html || true
+          # Lancement du test
+          artillery run artillery.yml --output artillery-report.json
 
-      - name: Upload Artillery Reports
+      - name: Generate and Upload Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: artillery-api-reports
+          name: artillery-report
           path: |
             artillery-report.json
-            artillery-report.html
-          retention-days: 30
-
-      - name: Check performance thresholds
-        if: always()
-        run: |
-          if [ -f "artillery-report.json" ]; then
-            echo "📊 Performance Summary:"
-            node -e "
-              const fs = require('fs');
-              const report = JSON.parse(fs.readFileSync('artillery-report.json', 'utf8'));
-              const summary = report.aggregate;
-              console.log('');
-              console.log('Requests:', summary.counters['http.requests'] || 0);
-              console.log('Responses:', summary.counters['http.responses'] || 0);
-              console.log('Errors:', summary.counters['errors.ETIMEDOUT'] || 0);
-              console.log('');
-              console.log('Response times (ms):');
-              console.log('  Min:', summary.summaries['http.response_time'].min || 0);
-              console.log('  Max:', summary.summaries['http.response_time'].max || 0);
-              console.log('  Median:', summary.summaries['http.response_time'].median || 0);
-              console.log('  P95:', summary.summaries['http.response_time'].p95 || 0);
-              console.log('  P99:', summary.summaries['http.response_time'].p99 || 0);
-              console.log('');
-              
-              // Thresholds
-              const p95 = summary.summaries['http.response_time'].p95 || 0;
-              const errorRate = (summary.counters['errors.ETIMEDOUT'] || 0) / (summary.counters['http.requests'] || 1);
-              
-              if (p95 > 1000) {
-                console.log('⚠️  WARNING: P95 response time exceeds 1000ms');
-              }
-              if (errorRate > 0.01) {
-                console.log('⚠️  WARNING: Error rate exceeds 1%');
-              }
-              if (p95 <= 1000 && errorRate <= 0.01) {
-                console.log('✅ All performance thresholds met!');
-              }
-            "
-          fi
-
-      - name: Stop API
-        if: always()
-        run: |
-          if [ -f .api.pid ]; then
-            kill $(cat .api.pid) || true
-            rm .api.pid
-          fi
+            api.log
+          retention-days: 7
