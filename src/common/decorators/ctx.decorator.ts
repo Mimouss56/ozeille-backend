@@ -6,12 +6,12 @@ export const Ctx = createParamDecorator((_data: unknown, ctx: ExecutionContext):
   const request = ctx.switchToHttp().getRequest();
   const user = request.user;
 
-  if (!user || !user.id) {
+  if (!user || !user.userId) {
     throw new UnauthorizedException("Utilisateur non identifié");
   }
 
   return {
-    userId: user.id,
+    userId: user.userId,
     method: ctx.getHandler().name,
     input: request.body,
   };
