@@ -9,6 +9,7 @@ import { AuthModule } from "./auth/auth.module";
 import { BudgetsModule } from "./budgets/budgets.module";
 import { CategoriesModule } from "./categories/categories.module";
 import { FrequenciesModule } from "./frequencies/frequencies.module";
+import { HealthController } from "./health/health.controller";
 import { MailerModule } from "./mailer/mailer.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { RedisModule } from "./redis/redis.module";
@@ -33,7 +34,7 @@ import { UsersModule } from "./users/users.module";
     AuthModule,
     MailerModule,
   ],
-  controllers: [],
+  controllers: [HealthController],
   providers: [
     {
       provide: APP_PIPE,
