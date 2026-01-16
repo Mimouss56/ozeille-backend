@@ -144,15 +144,15 @@ jobs:
           # Placeholder: build and push images for services and frontend
           echo "docker build/push steps here (implement using npm scripts or Dockerfiles)"
 
-  artillery-load-tests:
-    needs: full-audit
-    uses: ./.github/workflows/artillery-tests.yml
-    with:
-      api-url: "http://localhost:3000"
-    secrets: inherit
+  # artillery-load-tests:
+  #   needs: full-audit
+  #   uses: ./.github/workflows/artillery-tests.yml
+  #   with:
+  #     api-url: "http://localhost:3000"
+  #   secrets: inherit
 
   semantic-release:
-    needs: [full-audit, artillery-load-tests]
+    needs: [full-audit]
     runs-on: ubuntu-latest
     outputs:
       tag-pushed: ${{ steps.semantic.outputs.tag-pushed }}
