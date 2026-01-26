@@ -20,7 +20,8 @@ async function bootstrap() {
     .setTitle(`LaPince API (${env.toUpperCase()})`)
     .setDescription('API de gestion budgétaire "LaPince')
     .setVersion(env === "production" ? version : `${version}-${env}`)
-    .setContact("Support LaPince", "", "");
+    .setContact("Support LaPince", "", "")
+    .addBearerAuth();
 
   if (isProduction) {
     const prodUrl = process.env.PROD_API_URL || "";
