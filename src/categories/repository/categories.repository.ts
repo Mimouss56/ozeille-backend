@@ -11,8 +11,9 @@ export class CategoriesRepository {
 
   async getAll(userId: string): Promise<Category[]> {
     return this.prisma.category.findMany({
-      where: { userId }, // 🔒 Filtre par utilisateur
+      where: { userId },
       orderBy: { label: "asc" },
+      include: { budget: true },
     });
   }
 
