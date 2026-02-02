@@ -14,7 +14,11 @@ export class BudgetsRepository {
   async getAll(userId: string): Promise<Budget[]> {
     return this.prisma.budget.findMany({
       where: { userId },
-      include: { categories: true },
+      include: {
+        categories: {
+          include: { transactions: true },
+        },
+      },
       orderBy: { label: "asc" },
     });
   }
