@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
-import { JwtModule, JwtSignOptions } from "@nestjs/jwt";
+import { ConfigService } from "@nestjs/config";
+import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
 import { MailerModule } from "src/mailer/mailer.module";
 import { PrismaService } from "src/prisma/prisma.service";
@@ -10,17 +11,18 @@ import { AuthController } from "./controller/auth.controller";
 import { AuthService } from "./services/auth.service";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 
-const JWT_EXPIRATION = process.env.JWT_EXPIRATION ?? "3600";
-
 @Module({
   controllers: [AuthController],
   imports: [
     PassportModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET ?? "test-secret-key",
-      signOptions: {
-        expiresIn: JWT_EXPIRATION as JwtSignOptions["expiresIn"],
-      },
+    JwtModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: (config) => ({
+        secret: config.get("JWT_SECRET", "test-secret-key"),
+        signOptions: {
+          expiresIn: config.get("JWT_EXPIRATION", "3600"),
+        },
+      }),
     }),
     UsersModule,
     MailerModule,
