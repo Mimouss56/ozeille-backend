@@ -49,8 +49,15 @@ describe("CategoriesController", () => {
       const result = [{ id: "cat-1", label: "Food", userId: "user-123" }];
       mockCategoriesService.findAll.mockResolvedValue(result);
 
-      expect(await controller.findAll(mockCtx)).toBe(result);
-      expect(service.findAll).toHaveBeenCalledWith(mockCtx);
+      // Ajout d'un filtre label avec toutes les propriétés requises
+      const filters = {
+        page: 1,
+        limit: 10,
+        label: "Food",
+        "order[label]": "desc" as const,
+      };
+      expect(await controller.findAll(mockCtx, filters)).toBe(result);
+      expect(service.findAll).toHaveBeenCalledWith(mockCtx, filters);
     });
   });
 

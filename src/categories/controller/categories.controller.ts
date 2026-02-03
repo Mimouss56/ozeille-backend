@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put, Query, UseGuards } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -12,8 +12,10 @@ import { Ctx } from "src/common/decorators/ctx.decorator";
 import { ErrorResponse } from "src/common/dto/base-error.dto";
 import { ValidationErrorResponse } from "src/common/dto/validation-error.dto";
 import { RequestContext } from "src/common/interfaces/request-context.interface";
+import { PaginatedDatabaseResponse } from "src/common/types";
 import { Category } from "src/generated/prisma/client";
 
+import { CategoryFilters } from "../dto/category-filter.dto";
 import { CategoryResponse } from "../dto/category.dto";
 import { CreateCategoryDto, CreateCategoryRequest } from "../dto/create-category.dto";
 import { UpdateCategoryDto, UpdateCategoryRequest } from "../dto/update-category.dto";
@@ -32,8 +34,11 @@ export class CategoriesController {
     isArray: true,
     description: "List of all categories",
   })
-  async findAll(@Ctx() ctx: RequestContext<unknown>): Promise<Category[]> {
-    return this.categoriesService.findAll(ctx);
+  async findAll(
+    @Ctx() ctx: RequestContext<unknown>,
+    @Query() params: CategoryFilters,
+  ): Promise<PaginatedDatabaseResponse<Category>> {
+    return this.categoriesService.findAll(ctx, params);
   }
 
   @Post()
