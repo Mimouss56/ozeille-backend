@@ -10,13 +10,18 @@ import { AuthController } from "./controller/auth.controller";
 import { AuthService } from "./services/auth.service";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 
+const JWT_EXPIRATION = process.env.JWT_EXPIRATION ?? "3600";
+console.log("jwt", JWT_EXPIRATION);
+
 @Module({
   controllers: [AuthController],
   imports: [
     PassportModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET ?? "test-secret-key",
-      signOptions: { expiresIn: "1d" },
+      signOptions: {
+        expiresIn: Number(JWT_EXPIRATION),
+      },
     }),
     UsersModule,
     MailerModule,
