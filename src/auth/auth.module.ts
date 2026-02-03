@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
 import { MailerModule } from "src/mailer/mailer.module";
@@ -14,9 +15,14 @@ import { JwtStrategy } from "./strategies/jwt.strategy";
   controllers: [AuthController],
   imports: [
     PassportModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET ?? "test-secret-key",
-      signOptions: { expiresIn: "1d" },
+    JwtModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: (config) => ({
+        secret: config.get("JWT_SECRET", "test-secret-key"),
+        signOptions: {
+          expiresIn: config.get("JWT_EXPIRATION", "3600"),
+        },
+      }),
     }),
     UsersModule,
     MailerModule,
