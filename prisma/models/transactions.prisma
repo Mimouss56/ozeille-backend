@@ -15,7 +15,7 @@ model Transaction {
   frequencyId String?    @map("frequency_id")
   frequency   Frequency? @relation(fields: [frequencyId], references: [id])
 
-  userId     String
+  userId     String   @map("user_id")
   user       User     @relation(fields: [userId], references: [id])
   
   @@map("transactions")

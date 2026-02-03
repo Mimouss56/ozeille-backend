@@ -5,7 +5,10 @@
 
 */
 -- AlterTable
-ALTER TABLE "transactions" ADD COLUMN     "userId" TEXT NOT NULL;
+ALTER TABLE "transactions" ADD COLUMN     "user_id" TEXT;
+
+update "transactions" set user_id = (select user_id from categories where categories.id = transactions.category_id limit 1);
+ALTER TABLE "transactions" ALTER COLUMN "user_id" SET NOT NULL;
 
 -- AddForeignKey
-ALTER TABLE "transactions" ADD CONSTRAINT "transactions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "transactions" ADD CONSTRAINT "transactions_userId_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
