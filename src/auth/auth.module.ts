@@ -1,5 +1,5 @@
 import { Module } from "@nestjs/common";
-import { JwtModule } from "@nestjs/jwt";
+import { JwtModule, JwtSignOptions } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
 import { MailerModule } from "src/mailer/mailer.module";
 import { PrismaService } from "src/prisma/prisma.service";
@@ -11,7 +11,6 @@ import { AuthService } from "./services/auth.service";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 
 const JWT_EXPIRATION = process.env.JWT_EXPIRATION ?? "3600";
-console.log("jwt", JWT_EXPIRATION);
 
 @Module({
   controllers: [AuthController],
@@ -20,7 +19,7 @@ console.log("jwt", JWT_EXPIRATION);
     JwtModule.register({
       secret: process.env.JWT_SECRET ?? "test-secret-key",
       signOptions: {
-        expiresIn: Number(JWT_EXPIRATION),
+        expiresIn: JWT_EXPIRATION as JwtSignOptions["expiresIn"],
       },
     }),
     UsersModule,
