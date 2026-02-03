@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put, Query, UseGuards } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -15,6 +15,7 @@ import { RequestContext } from "src/common/interfaces/request-context.interface"
 import { Budget } from "src/generated/prisma/client";
 
 import { BudgetResponse } from "../dto/budget.dto";
+import { BudgetFilters } from "../dto/buget-filter.dto";
 import { CreateBudgetDto, CreateBudgetRequest } from "../dto/create-budget.dto";
 import { UpdateBudgetDto, UpdateBudgetRequest } from "../dto/update-budget.dto";
 import { BudgetsService } from "../services/budgets.service";
@@ -32,8 +33,8 @@ export class BudgetsController {
     isArray: true,
     description: "List of all budgets",
   })
-  async findAll(@Ctx() ctx: RequestContext<unknown>): Promise<Budget[]> {
-    return this.budgetsService.findAll(ctx);
+  async findAll(@Query() params: BudgetFilters, @Ctx() ctx: RequestContext<unknown>): Promise<Budget[]> {
+    return this.budgetsService.findAll(ctx, params);
   }
 
   @Post()
