@@ -1,7 +1,9 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { RequestContext } from "src/common/interfaces/request-context.interface";
+import { PaginatedDatabaseResponse } from "src/common/types";
 import { Category } from "src/generated/prisma/client";
 
+import { CategoryFilters } from "../dto/category-filter.dto";
 import { CreateCategoryDto } from "../dto/create-category.dto";
 import { UpdateCategoryDto } from "../dto/update-category.dto";
 import { CategoriesRepository } from "../repository/categories.repository";
@@ -10,8 +12,8 @@ import { CategoriesRepository } from "../repository/categories.repository";
 export class CategoriesService {
   constructor(private readonly repository: CategoriesRepository) {}
 
-  async findAll(ctx: RequestContext<unknown>): Promise<Category[]> {
-    return this.repository.getAll(ctx.userId);
+  async findAll(ctx: RequestContext<unknown>, params: CategoryFilters): Promise<PaginatedDatabaseResponse<Category>> {
+    return this.repository.getAll(ctx.userId, params);
   }
 
   async create(ctx: RequestContext<CreateCategoryDto>): Promise<Category> {
