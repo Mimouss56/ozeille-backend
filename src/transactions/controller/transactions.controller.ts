@@ -1,4 +1,16 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put, Query, UseInterceptors } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+  UseInterceptors,
+} from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiCreatedResponse,
@@ -7,9 +19,12 @@ import {
   ApiOkResponse,
   getSchemaPath,
 } from "@nestjs/swagger";
+import { JwtAuthGuard } from "src/auth/guards/jwt-auth.guard";
+import { Ctx } from "src/common/decorators/ctx.decorator";
 import { ErrorResponse } from "src/common/dto/base-error.dto";
 import { ValidationErrorResponse } from "src/common/dto/validation-error.dto";
 import { PaginatedResponseInterceptor } from "src/common/interceptors/paginated-response.interceptor";
+import { RequestContext } from "src/common/interfaces/request-context.interface";
 import { PaginatedDatabaseResponse } from "src/common/types";
 import { type Transaction } from "src/generated/prisma/client";
 
@@ -21,6 +36,7 @@ import { UpdateTransactionRequest } from "../dto/update-transaction.dto";
 import { TransactionsService } from "../services/transactions.service";
 
 @Controller("api/transactions")
+@UseGuards(JwtAuthGuard)
 export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {
     // Constructor body can be empty or used for additional setup
@@ -35,8 +51,11 @@ export class TransactionsController {
     description: "Validation failed",
     type: ValidationErrorResponse,
   })
-  create(@Body() createTransactionDto: CreateTransactionRequest): Promise<Transaction> {
-    return this.transactionsService.create(createTransactionDto);
+  create(
+    @Body() createTransactionDto: CreateTransactionRequest,
+    @Ctx() ctx: RequestContext<unknown>,
+  ): Promise<Transaction> {
+    return this.transactionsService.create(createTransactionDto, ctx);
   }
 
   @Get()
@@ -52,8 +71,11 @@ export class TransactionsController {
       },
     },
   })
-  async findAll(@Query() params: TransactionFilters): Promise<PaginatedDatabaseResponse<Transaction>> {
-    return this.transactionsService.findAll(params);
+  async findAll(
+    @Query() params: TransactionFilters,
+    @Ctx() ctx: RequestContext<unknown>,
+  ): Promise<PaginatedDatabaseResponse<Transaction>> {
+    return this.transactionsService.findAll(params, ctx);
   }
 
   @Get(":id")

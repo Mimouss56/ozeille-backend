@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { Budget } from "src/generated/prisma/client";
 import { PrismaService } from "src/prisma/prisma.service";
 
+import { BudgetFilters } from "../dto/buget-filter.dto";
 import { CreateBudgetRequest } from "../dto/create-budget.dto";
 import { UpdateBudgetRequest } from "../dto/update-budget.dto";
 
@@ -11,10 +12,22 @@ export class BudgetsRepository {
   private connectUser(userId: string) {
     return { connect: { id: userId } };
   }
-  async getAll(userId: string): Promise<Budget[]> {
+  async getAll(userId: string, params: BudgetFilters): Promise<Budget[]> {
+    const fromDate = params.from ? new Date(params.from) : undefined;
+    const toDate = params.to ? new Date(params.to) : undefined;
     return this.prisma.budget.findMany({
       where: { userId },
-      include: { categories: true },
+      include: {
+        categories: {
+          include: {
+            transactions: {
+              where: {
+                dueAt: { gte: fromDate, lte: toDate },
+              },
+            },
+          },
+        },
+      },
       orderBy: { label: "asc" },
     });
   }

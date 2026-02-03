@@ -5,6 +5,7 @@ import * as bcrypt from "bcrypt";
 import { randomBytes, randomUUID } from "crypto";
 import { MailerService } from "src/mailer/services/mailer.service";
 import { RedisKey, RedisService } from "src/redis/redis.module";
+import { UserEntity } from "src/users/entities/user.entity";
 import { UsersService } from "src/users/services/users.service";
 
 import { ResetPasswordDto } from "../../users/dto/reset-password.dto";
@@ -158,6 +159,20 @@ export class AuthService {
     await this.redisService.delWithPrefix(RedisKey.RESET_PASSWORD_TOKEN, token);
 
     this.logger.log(`Password successfully reset for userId: ${userId}`);
+  }
+
+  async fetchMe(userId: string): Promise<{ message: string; userId: string; method: string; me: UserEntity }> {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException("Utilisateur non trouvé");
+    }
+
+    return {
+      message: "Vous êtes authentifié avec succès",
+      userId: user.id,
+      method: "JWT",
+      me: user,
+    };
   }
 
   // ========== Private Methods ==========

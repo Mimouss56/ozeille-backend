@@ -12,7 +12,12 @@ export const updateTransactionSchema = transactionSchema
     categoryId: true,
     frequencyId: true,
   })
-  .required();
+  .required({
+    amount: true,
+    label: true,
+    dueAt: true,
+    categoryId: true,
+  });
 
 export type UpdateTransactionDto = z.infer<typeof updateTransactionSchema>;
 

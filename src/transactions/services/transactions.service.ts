@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
+import { RequestContext } from "src/common/interfaces/request-context.interface";
 import { Transaction } from "src/generated/prisma/client";
 
 import { PaginatedDatabaseResponse } from "../../common/types";
@@ -11,12 +12,12 @@ import { TransactionsRepository } from "../repository/transactions.repository";
 export class TransactionsService {
   constructor(private readonly repository: TransactionsRepository) {}
 
-  create(createTransactionRequest: CreateTransactionRequest): Promise<Transaction> {
-    return this.repository.create(createTransactionRequest);
+  create(createTransactionRequest: CreateTransactionRequest, ctx: RequestContext<unknown>): Promise<Transaction> {
+    return this.repository.create(createTransactionRequest, ctx.userId);
   }
 
-  findAll(params: TransactionFilters): Promise<PaginatedDatabaseResponse<Transaction>> {
-    return this.repository.getAll(params);
+  findAll(params: TransactionFilters, ctx: RequestContext<unknown>): Promise<PaginatedDatabaseResponse<Transaction>> {
+    return this.repository.getAll(params, ctx.userId);
   }
 
   /**

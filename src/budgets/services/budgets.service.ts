@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { RequestContext } from "src/common/interfaces/request-context.interface";
 import { Budget } from "src/generated/prisma/client";
 
+import { BudgetFilters } from "../dto/buget-filter.dto";
 import { CreateBudgetDto } from "../dto/create-budget.dto";
 import { UpdateBudgetDto } from "../dto/update-budget.dto";
 import { BudgetsRepository } from "../repository/budgets.repository";
@@ -10,8 +11,8 @@ import { BudgetsRepository } from "../repository/budgets.repository";
 export class BudgetsService {
   constructor(private readonly repository: BudgetsRepository) {}
 
-  async findAll(ctx: RequestContext<unknown>): Promise<Budget[]> {
-    return this.repository.getAll(ctx.userId);
+  async findAll(ctx: RequestContext<unknown>, params: BudgetFilters): Promise<Budget[]> {
+    return this.repository.getAll(ctx.userId, params);
   }
 
   async create(ctx: RequestContext<CreateBudgetDto>): Promise<Budget> {

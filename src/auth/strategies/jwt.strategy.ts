@@ -11,6 +11,8 @@ export interface JwtPayload {
   exp?: number;
 }
 
+const JWT_SECRET = process.env.JWT_SECRET ?? "test-secret-key";
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
@@ -18,7 +20,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       // On dit à Passport : "Cherche le token dans le Header 'Authorization' en tant que Bearer Token"
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || "CHANGE_ME_IN_ENV_FILE",
+      secretOrKey: JWT_SECRET,
     });
   }
 

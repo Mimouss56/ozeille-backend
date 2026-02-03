@@ -10,6 +10,7 @@ export class CategoriesTestContext {
   public readonly password = "Password123!";
   public readonly existingCategoryLabel = "Déjà présent";
   public readonly budgetLabel = "Budget E2E";
+  public existingCategoryId: string;
 
   constructor(private prisma: PrismaService) {}
 
@@ -40,7 +41,7 @@ export class CategoriesTestContext {
     this.budgetId = budget.id;
 
     // 4. CRÉATION DE LA CATÉGORIE
-    await this.prisma.category.create({
+    const category = await this.prisma.category.create({
       data: {
         label: this.existingCategoryLabel,
         color: "#e74c3c",
@@ -49,6 +50,7 @@ export class CategoriesTestContext {
         budgetId: this.budgetId,
       },
     });
+    this.existingCategoryId = category.id;
   }
 
   async cleanup(): Promise<void> {

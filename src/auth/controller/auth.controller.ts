@@ -19,6 +19,7 @@ import { ForgotPasswordDto } from "../dto/forgot-password.dto";
 import { ForgotPasswordResponseDto } from "../dto/forgot-password.response.dto";
 import { LoginResponseDto } from "../dto/login-response.dto";
 import { LoginDto } from "../dto/login.dto";
+import { MeResponseDto } from "../dto/me-response.dto";
 import { Validate2FAResponseDto } from "../dto/validate-2fa-response.dto";
 import { Validate2FADto } from "../dto/validate-2fa.dto";
 import { JwtAuthGuard } from "../guards/jwt-auth.guard";
@@ -110,12 +111,10 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOkResponse({ description: "Retourne les infos de l'utilisateur courant via le Token" })
-  getProfile(@Ctx() ctx: RequestContext<unknown>): { message: string; userId: string; method: string } {
-    return {
-      message: "Vous êtes authentifié avec succès",
-      userId: ctx.userId,
-      method: ctx.method,
-    };
+  async getProfile(@Ctx() ctx: RequestContext<unknown>): Promise<MeResponseDto> {
+    const response = await this.authService.fetchMe(ctx.userId);
+
+    return response;
   }
 
   @Post("forgot-password")
