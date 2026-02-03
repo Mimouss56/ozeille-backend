@@ -285,7 +285,7 @@ export class CreateUserDto {
   email: string;
 
   @IsString()
-  @MinLength(8)
+  @MinLength(12)
   @MaxLength(100)
   password: string;
 }
@@ -298,7 +298,7 @@ import { z } from 'zod';
 
 const CreateUserSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8).max(100)
+  password: z.string().min(12).max(100)
 });
 
 export class CreateUserDto extends createZodDto(CreateUserSchema) {}
