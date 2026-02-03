@@ -1,6 +1,5 @@
 import { Injectable, Logger, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-// 👈 IMPORT IMPORTANT
 import * as bcrypt from "bcrypt";
 import { randomBytes, randomUUID } from "crypto";
 import { MailerService } from "src/mailer/services/mailer.service";
@@ -22,7 +21,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly mailerService: MailerService,
     private readonly redisService: RedisService,
-    private readonly jwtService: JwtService, // 👈 INJECTION DU SERVICE JWT
+    private readonly jwtService: JwtService,
   ) {}
 
   /**
@@ -206,8 +205,8 @@ export class AuthService {
     const payload = { sub: userId };
 
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, { expiresIn: "1h" }), // Access Token (1h)
-      this.jwtService.signAsync(payload, { expiresIn: "1d" }), // Refresh Token (1j)
+      this.jwtService.signAsync(payload),
+      this.jwtService.signAsync(payload, { expiresIn: "1d" }),
     ]);
 
     return { accessToken, refreshToken };
