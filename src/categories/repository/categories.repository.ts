@@ -45,7 +45,7 @@ export class CategoriesRepository {
       data: {
         ...category,
         userId,
-        limitAmount: category.limitAmount === null ? undefined : category.limitAmount,
+        limitAmount: category.limitAmount === null ? 0 : category.limitAmount,
       },
     });
   }
