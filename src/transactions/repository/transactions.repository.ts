@@ -11,20 +11,20 @@ import { UpdateTransactionRequest } from "../dto/update-transaction.dto";
 export class TransactionsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getAll({
-    limit,
-    page,
-    "order[dueAt]": dueAt,
-    "exists[pointedAt]": _pointedAt,
-  }: TransactionFilters): Promise<PaginatedDatabaseResponse<Transaction>> {
+  async getAll(
+    { limit, page, "order[dueAt]": dueAt, "exists[pointedAt]": _pointedAt }: TransactionFilters,
+    userId: string,
+  ): Promise<PaginatedDatabaseResponse<Transaction>> {
     const skip = (page - 1) * limit;
     const take = limit;
     // const isPointedAt = pointedAt ? { not: null } : null;
+    const where = { userId };
 
     const [transactions, count] = await this.prisma.$transaction([
       this.prisma.transaction.findMany({
         skip,
         take,
+        where,
         orderBy: {
           dueAt: dueAt,
         },
@@ -32,6 +32,7 @@ export class TransactionsRepository {
         include: { category: true },
       }),
       this.prisma.transaction.count({
+        where,
         orderBy: {
           dueAt: dueAt,
         },
@@ -57,14 +58,15 @@ export class TransactionsRepository {
     });
   }
 
-  async create(transaction: CreateTransactionRequest): Promise<Transaction> {
-    const { categoryId, frequencyId, ...rest } = transaction;
+  async create(payload: CreateTransactionRequest, userId: string): Promise<Transaction> {
+    const { categoryId, frequencyId, ...rest } = payload;
 
     return this.prisma.transaction.create({
       data: {
         ...rest,
-        category: categoryId ? { connect: { id: categoryId } } : undefined,
-        frequency: frequencyId ? { connect: { id: frequencyId } } : undefined,
+        user: { connect: { id: userId } },
+        ...(categoryId && { category: { connect: { id: categoryId } } }),
+        ...(frequencyId && { frequency: { connect: { id: frequencyId } } }),
       },
       include: { category: true, frequency: true },
     });
