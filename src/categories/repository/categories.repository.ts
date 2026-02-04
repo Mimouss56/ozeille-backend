@@ -65,6 +65,7 @@ export class CategoriesRepository {
 
     return this.prisma.category.update({
       where: { id },
+      include: { budget: true },
       data,
     });
   }
