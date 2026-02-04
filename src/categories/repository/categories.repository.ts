@@ -45,6 +45,7 @@ export class CategoriesRepository {
       data: {
         ...category,
         userId,
+        limitAmount: category.limitAmount === null ? 0 : category.limitAmount,
       },
     });
   }
@@ -64,6 +65,7 @@ export class CategoriesRepository {
 
     return this.prisma.category.update({
       where: { id },
+      include: { budget: true },
       data,
     });
   }
@@ -77,6 +79,12 @@ export class CategoriesRepository {
 
     return this.prisma.category.delete({
       where: { id },
+    });
+  }
+
+  async findByLabelAndUserId(label: string, userId: string): Promise<Category | null> {
+    return this.prisma.category.findFirst({
+      where: { label, userId },
     });
   }
 }

@@ -8,8 +8,9 @@ export const updateCategorySchema = categorySchema
     label: true,
     color: true,
     limitAmount: true,
+    type: true,
   })
-  .required();
+  .partial();
 
 export type UpdateCategoryDto = z.infer<typeof updateCategorySchema>;
 

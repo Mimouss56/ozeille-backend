@@ -68,6 +68,7 @@ describe("CategoriesController", () => {
         color: "#FFF",
         budgetId: "budget-1",
         limitAmount: 100,
+        type: "EXPENSE",
       };
 
       const ctxWithInput = { ...mockCtx, input: dto };
