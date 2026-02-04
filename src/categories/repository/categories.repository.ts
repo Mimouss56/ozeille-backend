@@ -81,4 +81,10 @@ export class CategoriesRepository {
       where: { id },
     });
   }
+
+  async findByLabelAndUserId(label: string, userId: string): Promise<Category | null> {
+    return this.prisma.category.findFirst({
+      where: { label, userId },
+    });
+  }
 }

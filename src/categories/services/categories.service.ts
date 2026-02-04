@@ -17,6 +17,11 @@ export class CategoriesService {
   }
 
   async create(ctx: RequestContext<CreateCategoryDto>): Promise<Category> {
+    const categoryExists = await this.repository.findByLabelAndUserId(ctx.input.label, ctx.userId);
+
+    if (categoryExists) {
+      throw new NotFoundException("A category with this label already exists.");
+    }
     return this.repository.create(ctx.userId, ctx.input);
   }
 
