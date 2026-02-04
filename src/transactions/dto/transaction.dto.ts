@@ -8,7 +8,7 @@ export const transactionSchema = z.object({
   }),
   label: z.string("Label must be a string").max(30, { error: "Label must be less than 30 characters" }),
   dueAt: z.iso.datetime("Due date must be a valid date with an ISO format (YYYY-MM-DDT00:00:00.000Z)"),
-  pointedAt: z.iso.datetime().optional(),
+  pointedAt: z.iso.datetime().optional().nullable(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
   categoryId: z.uuid().nullable().optional().describe("Category ID linked to this transaction"),
