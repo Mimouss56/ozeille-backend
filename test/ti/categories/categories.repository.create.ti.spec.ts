@@ -39,6 +39,7 @@ describe("CategoriesRepository - create (TI)", () => {
       budgetId: "budget-1",
       color: "#FF0000",
       limitAmount: 100,
+      type: "EXPENSE",
     };
 
     // 3. Exécution avec la NOUVELLE signature (userId, dto)
