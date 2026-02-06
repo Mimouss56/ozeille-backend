@@ -6,4 +6,10 @@ const budgetFilterSchema = z.object({
   to: z.iso.date().optional().describe("Maximum date inclusive for budget filter"),
 });
 
+const budgetFromFilterSchema = z.object({
+  to: z.iso.date().optional().describe("Actual date for budget summary"),
+});
+
+export class SummaryBudgetFilters extends createZodDto(budgetFromFilterSchema) {}
+
 export class BudgetFilters extends createZodDto(budgetFilterSchema) {}
