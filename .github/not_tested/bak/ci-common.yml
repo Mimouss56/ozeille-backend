@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       module:
-        description: "Module name to test"
+        description: "Module name to test (e.g., users, auth, transactions)"
         required: true
         type: string
       node-version:
@@ -14,7 +14,7 @@ on:
         default: "22"
 
 jobs:
-  test-module:
+  detect-and-test:
     name: Test ${{ inputs.module }}
     runs-on: ubuntu-latest
     services:
@@ -28,17 +28,18 @@ jobs:
           --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
         ports:
           - 5432:5432
+
       redis:
         image: redis:8-alpine
         options: >-
           --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
         ports:
           - 6379:6379
+
       mailpit:
         image: axllent/mailpit:v1.27
         ports:
           - 1025:1025
-
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
       REDIS_HOST: localhost
@@ -49,13 +50,24 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ inputs.node-version }}
-          cache: "npm"
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            node_modules
+          key: ${{ runner.os }}-node-${{ inputs.node-version }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ inputs.node-version }}-
 
       - name: Install dependencies
         run: npm ci
@@ -67,7 +79,7 @@ jobs:
             npx prisma migrate deploy || echo "No migrations to run"
           fi
 
-      - name: Lint Module
+      - name: Run Lint for module
         run: |
           echo "::group::Linting module: ${{ inputs.module }}"
           npx eslint "src/${{ inputs.module }}/**/*.ts" --max-warnings=0 || true
@@ -76,11 +88,11 @@ jobs:
       - name: Run TI Tests for module
         run: |
           if [ -d "test/ti/${{ inputs.module }}" ]; then
-             echo "::group::Running TI tests for module: ${{ inputs.module }}"
-             npx jest --testPathPattern="test/ti/${{ inputs.module }}/.*\.ti\.spec\.ts" --runInBand
-             echo "::endgroup::"
+            echo "::group::Running TI tests for module: ${{ inputs.module }}"
+            npx jest --testPathPattern="test/ti/${{ inputs.module }}/.*\.ti\.spec\.ts" --runInBand
+            echo "::endgroup::"
           else
-             echo "ℹ️ No TI tests for ${{ inputs.module }}"
+            echo "ℹ️ No TI tests found for module ${{ inputs.module }}"
           fi
 
       - name: Run E2E Tests for module
@@ -92,3 +104,6 @@ jobs:
           else
             echo "ℹ️ No E2E tests found for module ${{ inputs.module }}"
           fi
+
+      - name: Build
+        run: npm run build

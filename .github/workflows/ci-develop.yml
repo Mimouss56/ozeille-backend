@@ -1,0 +1,81 @@
+name: Develop CI
+
+on:
+  push:
+    branches: [develop]
+
+jobs:
+  full-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Start PostgreSQL for tests
+        run: |
+          docker run --name postgres_ci \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_USER=postgres \
+            -e POSTGRES_DB=testdb \
+            -p 5432:5432 \
+            -d postgres:17-alpine
+          sleep 5
+
+      - name: Start Redis for tests
+        run: |
+          docker run --name redis_ci \
+            -p 6379:6379 \
+            -d redis:8-alpine
+          sleep 2
+
+      - name: Start Mailpit for tests
+        run: |
+          docker run --name mailpit_ci \
+            -p 1025:1025 \
+            -d axllent/mailpit:v1.27
+          sleep 2
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy
+ 
+      - name: Full Lint & Typecheck
+        run: |
+          npm run lint
+
+      - name: Run ALL Tests
+        run: npm test -- --passWithNoTests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          MAILER_HOST: localhost
+          MAILER_PORT: 1025
+          NODE_ENV: test
+        
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=ozeille-backend
+            -Dsonar.organization=mimouss56
+            -Dsonar.sources=src
+            -Dsonar.tests=test
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/coverage/**,**/prisma/**
+            -Dsonar.test.inclusions=**/*.spec.ts
+      # Optionnel : Build Docker "Dev" pour tester l'image
+      - name: Build Docker (Check only)
+        run: docker build . -f docker/Dockerfile
