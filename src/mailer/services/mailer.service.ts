@@ -13,7 +13,7 @@ export class MailerService {
     this.transporter = createTransport({
       host: process.env.MAILER_HOST ?? "localhost",
       port: parseInt(process.env.MAILER_PORT ?? "1025", 10),
-      secure: false,
+      secure: process.env.MAILER_PORT === "465",
       auth:
         process.env.MAILER_USER && process.env.MAILER_PASSWORD
           ? {
@@ -32,10 +32,10 @@ export class MailerService {
     try {
       const info = await this.transporter.sendMail({
         to,
+        from: process.env.MAILER_FROM ?? "not send",
         subject,
         html,
       });
-      this.logger.log(`Email sent to ${to} messageId=${info.messageId}`);
     } catch (error) {
       this.logger.error(`Failed to send mail to ${to}: ${error}`);
       throw error;
