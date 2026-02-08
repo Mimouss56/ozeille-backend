@@ -15,8 +15,9 @@ import { RequestContext } from "src/common/interfaces/request-context.interface"
 import { Budget } from "src/generated/prisma/client";
 
 import { BudgetResponse } from "../dto/budget.dto";
-import { BudgetFilters } from "../dto/buget-filter.dto";
+import { BudgetFilters, SummaryBudgetFilters } from "../dto/buget-filter.dto";
 import { CreateBudgetDto, CreateBudgetRequest } from "../dto/create-budget.dto";
+import { GetSummaryBudgetResponseDto } from "../dto/responses/get-summary-budget.response.dto";
 import { UpdateBudgetDto, UpdateBudgetRequest } from "../dto/update-budget.dto";
 import { BudgetsService } from "../services/budgets.service";
 
@@ -52,6 +53,22 @@ export class BudgetsController {
   ): Promise<Budget> {
     // Correction : On passe uniquement le contexte, car ctx.input contient déjà les données
     return this.budgetsService.create(ctx);
+  }
+
+  @Get("summary")
+  @ApiOkResponse({
+    type: GetSummaryBudgetResponseDto,
+    description: "Summary of all budgets",
+  })
+  async getSummaryBudget(
+    @Query() params: SummaryBudgetFilters,
+    @Ctx() ctx: RequestContext<unknown>,
+  ): Promise<GetSummaryBudgetResponseDto> {
+    const getSummaryBudgetResponse: GetSummaryBudgetResponseDto = await this.budgetsService.getSummaryBudget(
+      ctx,
+      params,
+    );
+    return getSummaryBudgetResponse;
   }
 
   @Get(":id")
