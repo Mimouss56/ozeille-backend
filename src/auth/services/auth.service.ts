@@ -1,7 +1,7 @@
 import { Injectable, Logger, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
-import { randomBytes, randomUUID } from "crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { MailerService } from "src/mailer/services/mailer.service";
 import { RedisKey, RedisService } from "src/redis/redis.module";
 import { UserEntity } from "src/users/entities/user.entity";

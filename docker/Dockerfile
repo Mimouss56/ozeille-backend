@@ -14,7 +14,7 @@ WORKDIR /home/node/app
 COPY --chown=node:node . .
 
 EXPOSE 3000
-CMD sh /usr/script/entrypoint.sh
+CMD ["sh", "/usr/script/entrypoint.sh"]
 
 # --- Install deps for prod ---
 FROM base AS prod-deps
