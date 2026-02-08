@@ -30,7 +30,7 @@ export class MailerService {
    */
   async sendMail(to: string, subject: string, html: string): Promise<void> {
     try {
-      const info = await this.transporter.sendMail({
+      await this.transporter.sendMail({
         to,
         from: process.env.MAILER_FROM ?? "not send",
         subject,
