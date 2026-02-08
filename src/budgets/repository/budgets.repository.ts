@@ -45,7 +45,7 @@ export class BudgetsRepository {
     });
   }
 
-  getById(userId: string, id: string): Promise<Budget | null> {
+  async getById(userId: string, id: string): Promise<Budget | null> {
     return this.prisma.budget.findUnique({
       where: { id, userId },
       include: { categories: true },
@@ -71,7 +71,7 @@ export class BudgetsRepository {
 
   async getSummaryBudget(userId: string, params: SummaryBudgetFilters): Promise<GetSummaryBudgetResponseDto> {
     const toDate = params.to ? dayjs(params.to) : dayjs();
-    const fromDate = toDate.subtract(6, "months");
+    const fromDate = toDate.subtract(12, "months");
     const fromDateObj = fromDate.toDate();
     const toDateObj = toDate.toDate();
 
