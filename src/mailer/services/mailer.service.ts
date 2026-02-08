@@ -1,19 +1,19 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import { Transporter, createTransport } from "nodemailer";
 import { REDIS_TTL } from "src/auth/constants/redis.constants";
 import { RedisKey, RedisService } from "src/redis/redis.module";
 
 @Injectable()
 export class MailerService {
-  private transporter: Transporter;
+  private readonly transporter: Transporter;
   private readonly logger = new Logger(MailerService.name);
 
   constructor(private readonly redisService: RedisService) {
     this.transporter = createTransport({
       host: process.env.MAILER_HOST ?? "localhost",
-      port: parseInt(process.env.MAILER_PORT ?? "1025", 10),
-      secure: false,
+      port: Number.parseInt(process.env.MAILER_PORT ?? "1025", 10),
+      secure: process.env.MAILER_PORT === "465",
       auth:
         process.env.MAILER_USER && process.env.MAILER_PASSWORD
           ? {
@@ -30,12 +30,12 @@ export class MailerService {
    */
   async sendMail(to: string, subject: string, html: string): Promise<void> {
     try {
-      const info = await this.transporter.sendMail({
+      await this.transporter.sendMail({
         to,
+        from: process.env.MAILER_FROM ?? "not send",
         subject,
         html,
       });
-      this.logger.log(`Email sent to ${to} messageId=${info.messageId}`);
     } catch (error) {
       this.logger.error(`Failed to send mail to ${to}: ${error}`);
       throw error;

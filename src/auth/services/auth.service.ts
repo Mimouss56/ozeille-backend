@@ -1,7 +1,7 @@
 import { Injectable, Logger, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
-import { randomBytes, randomUUID } from "crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { MailerService } from "src/mailer/services/mailer.service";
 import { RedisKey, RedisService } from "src/redis/redis.module";
 import { UserEntity } from "src/users/entities/user.entity";
@@ -102,7 +102,6 @@ export class AuthService {
 
       await this.usersService.confirmUserEmail(user.id);
       await this.redisService.delWithPrefix(RedisKey.CONFIRM_EMAIL_TOKEN, token);
-      this.logger.log(`Email confirmed successfully for: ${email}`);
       return true;
     } catch (error) {
       this.logger.error(`Failed to confirm email for ${email}:`, error);
@@ -136,13 +135,9 @@ export class AuthService {
     );
     // Send email with reset link
     await this.mailerService.sendResetPasswordEmail(email, resetToken);
-
-    this.logger.log(`Password reset email sent to: ${email}`);
   }
 
   async resetPassword(token: string, resetPassword: ResetPasswordDto): Promise<void> {
-    // Get userId from reset token
-    // const userId = await this.repository.getUserIdFromResetToken(token);
     const userId = await this.redisService.getWithPrefix(RedisKey.RESET_PASSWORD_TOKEN, token);
     if (!userId) {
       throw new UnauthorizedException("Token de réinitialisation invalide ou expiré");
@@ -156,8 +151,6 @@ export class AuthService {
 
     // Delete used reset token
     await this.redisService.delWithPrefix(RedisKey.RESET_PASSWORD_TOKEN, token);
-
-    this.logger.log(`Password successfully reset for userId: ${userId}`);
   }
 
   async fetchMe(userId: string): Promise<{ message: string; userId: string; method: string; me: UserEntity }> {

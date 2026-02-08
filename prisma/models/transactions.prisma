@@ -18,5 +18,7 @@ model Transaction {
   userId     String   @map("user_id")
   user       User     @relation(fields: [userId], references: [id])
   
+  @@index([dueAt, userId])
+  @@index([categoryId, dueAt])
   @@map("transactions")
 }

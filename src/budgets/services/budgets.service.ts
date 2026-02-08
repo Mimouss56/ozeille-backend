@@ -2,8 +2,9 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { RequestContext } from "src/common/interfaces/request-context.interface";
 import { Budget } from "src/generated/prisma/client";
 
-import { BudgetFilters } from "../dto/buget-filter.dto";
+import { BudgetFilters, SummaryBudgetFilters } from "../dto/buget-filter.dto";
 import { CreateBudgetDto } from "../dto/create-budget.dto";
+import { GetSummaryBudgetResponseDto } from "../dto/responses/get-summary-budget.response.dto";
 import { UpdateBudgetDto } from "../dto/update-budget.dto";
 import { BudgetsRepository } from "../repository/budgets.repository";
 
@@ -22,7 +23,7 @@ export class BudgetsService {
   async findOne(ctx: RequestContext<unknown>, id: string): Promise<Budget> {
     const budget = await this.repository.getById(ctx.userId, id);
 
-    if (!budget || budget.userId !== ctx.userId) {
+    if (budget?.userId !== ctx.userId) {
       throw new NotFoundException("The budget with the given ID was not found.");
     }
     return budget;
@@ -34,5 +35,11 @@ export class BudgetsService {
 
   async remove(ctx: RequestContext<unknown>, id: string): Promise<Budget> {
     return this.repository.remove(ctx.userId, id);
+  }
+  async getSummaryBudget(
+    ctx: RequestContext<unknown>,
+    params: SummaryBudgetFilters,
+  ): Promise<GetSummaryBudgetResponseDto> {
+    return this.repository.getSummaryBudget(ctx.userId, params);
   }
 }

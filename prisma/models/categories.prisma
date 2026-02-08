@@ -25,6 +25,8 @@ model Category {
   // Contrainte unique : "label + user_id + budget_id"
   // Dans toute l'application, un même utilisateur ne peut pas avoir deux catégories avec le même label
   @@unique([label, userId], name: "unique_category_per_user")
+  @@index([type, budgetId])
+  @@index([userId, type])
   
   @@map("categories")
 }
