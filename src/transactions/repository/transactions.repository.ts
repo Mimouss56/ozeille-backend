@@ -13,11 +13,20 @@ export class TransactionsRepository {
 
   async getAll(params: TransactionFilters, userId: string): Promise<PaginatedDatabaseResponse<Transaction>> {
     const { page, limit } = params;
-    const { "order[dueAt]": orderDueAt, categoryId } = params;
+    const { "order[dueAt]": orderDueAt, categoryId, from, to } = params;
     const skip = (page - 1) * limit;
     const take = limit;
     // const isPointedAt = pointedAt ? { not: null } : null;
-    const where = { userId, categoryId: categoryId || undefined };
+    const fromDate = from ? new Date(from) : undefined;
+    const toDate = to ? new Date(to) : undefined;
+    const where = {
+      userId,
+      categoryId: categoryId || undefined,
+      dueAt: {
+        ...(fromDate && { gte: fromDate }),
+        ...(toDate && { lte: toDate }),
+      },
+    };
 
     const [transactions, count] = await this.prisma.$transaction([
       this.prisma.transaction.findMany({
@@ -27,7 +36,6 @@ export class TransactionsRepository {
         orderBy: {
           dueAt: orderDueAt,
         },
-        // where: { pointedAt: isPointedAt },
         include: { category: true },
       }),
       this.prisma.transaction.count({
