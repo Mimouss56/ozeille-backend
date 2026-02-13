@@ -13,6 +13,7 @@ import {
 } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
+  ApiBearerAuth,
   ApiCreatedResponse,
   ApiExtraModels,
   ApiNotFoundResponse,
@@ -37,6 +38,7 @@ import { TransactionsService } from "../services/transactions.service";
 
 @Controller("api/transactions")
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {
     // Constructor body can be empty or used for additional setup

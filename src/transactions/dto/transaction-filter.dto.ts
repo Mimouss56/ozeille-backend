@@ -4,6 +4,8 @@ import { directionEnumSchema } from "src/common/dto/filter.dto";
 import { z } from "zod";
 
 const transactionFilterSchema = paginationFilterSchema.extend({
+  label: z.string().optional(),
+  categoryId: z.uuid().optional(),
   "order[dueAt]": directionEnumSchema.default("desc"),
   "exists[pointedAt]": booleanEnumSchema.optional(),
 });
