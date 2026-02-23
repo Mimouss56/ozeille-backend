@@ -5,7 +5,7 @@ export class CategoriesTestContext {
   public userId: string;
   public budgetId: string;
 
-  public readonly userEmail = "e2e-cat-@test.com";
+  public readonly userEmail = "test@example.com";
   // On garde le mot de passe en clair pour le login, mais on le hash pour la DB
   public readonly password = "Password123!";
   public readonly existingCategoryLabel = "Déjà présent";

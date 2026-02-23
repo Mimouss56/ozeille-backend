@@ -15,7 +15,7 @@ describe("POST /api/auth/login (e2e)", () => {
   let testContext: AuthTestContext;
 
   const testUser = {
-    email: "login-test@localhost",
+    email: "test@example.com",
     password: "Password123!",
     firstName: "Login",
     lastName: "Test",

@@ -6,7 +6,7 @@ export class BudgetsTestContext {
   public budgetId: string;
   public categoryId: string;
 
-  public readonly userEmail = "e2e-budgets-@test.com";
+  public readonly userEmail = "test@example.com";
   public readonly password = "Password123!";
 
   constructor(private readonly prisma: PrismaService) {}
