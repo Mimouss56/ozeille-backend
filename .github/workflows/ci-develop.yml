@@ -51,7 +51,7 @@ jobs:
           npm run lint
 
       - name: Run ALL Tests
-        run: npm test -- --passWithNoTests --coverage --runInBand
+        run: npm test -- --passWithNoTests --coverage --runInBand --detectOpenHandles
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
           REDIS_HOST: localhost
