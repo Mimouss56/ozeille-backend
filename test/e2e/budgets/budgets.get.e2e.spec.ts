@@ -45,7 +45,7 @@ describe("Budgets E2E - GET budgets", () => {
     expect(res.status).toBe(400);
     expect(res.body.message).toBe("Validation failed");
     expect(Array.isArray(res.body.errors)).toBe(true);
-    expect(res.body.errors.some((error: { property: string }) => error.property === "from")).toBe(true);
+    expect(res.body.errors.some((error: { path?: string[] }) => error.path?.includes("from"))).toBe(true);
   });
 
   it("doit retourner 400 si to n'est pas une date ISO valide sur /summary", async () => {
@@ -56,7 +56,7 @@ describe("Budgets E2E - GET budgets", () => {
     expect(res.status).toBe(400);
     expect(res.body.message).toBe("Validation failed");
     expect(Array.isArray(res.body.errors)).toBe(true);
-    expect(res.body.errors.some((error: { property: string }) => error.property === "to")).toBe(true);
+    expect(res.body.errors.some((error: { path?: string[] }) => error.path?.includes("to"))).toBe(true);
   });
 
   it("doit retourner les catégories et filtrer les transactions par période quand expand=categories", async () => {
