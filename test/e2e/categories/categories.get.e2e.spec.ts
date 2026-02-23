@@ -82,5 +82,12 @@ describe("Categories E2E - GET categories", () => {
       .get(`/api/categories/123e4567-e89b-12d3-a456-426614174000`)
       .set("Authorization", `Bearer ${accessToken}`);
     expect([404, 400]).toContain(res.status);
+    if (res.status === 400) {
+      expect(res.body.message).toBe("Validation failed");
+      expect(Array.isArray(res.body.errors)).toBe(true);
+      expect(res.body.errors.some((error: { path?: string[] }) => error.path?.includes("id"))).toBe(true);
+    } else if (res.status === 404) {
+      expect(res.body.message).toMatch(/not found/i);
+    }
   });
 });

@@ -71,6 +71,9 @@ describe.skip("Categories E2E - POST categories", () => {
         // budgetId manquant
       });
     expect(res.status).toBe(400);
+    expect(res.body.message).toBe("Validation failed");
+    expect(Array.isArray(res.body.errors)).toBe(true);
+    expect(res.body.errors.some((error: { path?: string[] }) => error.path?.includes("budgetId"))).toBe(true);
   });
 
   it("doit retourner 400 si budgetId n'est pas un uuid", async () => {
@@ -83,6 +86,9 @@ describe.skip("Categories E2E - POST categories", () => {
         color: "#ffffff",
       });
     expect(res.status).toBe(400);
+    expect(res.body.message).toBe("Validation failed");
+    expect(Array.isArray(res.body.errors)).toBe(true);
+    expect(res.body.errors.some((error: { path?: string[] }) => error.path?.includes("budgetId"))).toBe(true);
   });
 
   it("doit retourner 400 si label est manquant", async () => {
@@ -95,6 +101,9 @@ describe.skip("Categories E2E - POST categories", () => {
         // label manquant
       });
     expect(res.status).toBe(400);
+    expect(res.body.message).toBe("Validation failed");
+    expect(Array.isArray(res.body.errors)).toBe(true);
+    expect(res.body.errors.some((error: { path?: string[] }) => error.path?.includes("label"))).toBe(true);
   });
 
   it("doit retourner 404 (ou 406) si budgetId n'existe pas en base", async () => {
