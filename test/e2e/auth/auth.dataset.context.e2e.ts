@@ -4,7 +4,7 @@ export class AuthTestContext {
   public userId: string;
 
   public readonly testUser = {
-    email: "e2e-auth-@test.com",
+    email: "e2e-auth-@localhost",
     password: "Password123!",
     firstName: "Validate2FA",
     lastName: "Doe",
