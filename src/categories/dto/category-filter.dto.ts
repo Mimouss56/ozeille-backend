@@ -1,16 +1,12 @@
 import { createZodDto } from "nestjs-zod";
-import { directionEnumSchema, paginationFilterSchema } from "src/common/dto/filter.dto";
+import { paginationFilterSchema } from "src/common/dto/filter.dto";
+import { directionEnumSchema } from "src/common/dto/filter.dto";
 import { z } from "zod";
-
-export enum CategoryExpand {
-  BUDGET = "budget",
-  TRANSACTIONS = "transactions",
-}
 
 const categoryFilterSchema = paginationFilterSchema.extend({
   label: z.string().min(1).max(30).optional().describe("Recherche par label de catégorie"),
   "order[label]": directionEnumSchema.default("desc"),
-  expand: z.string().optional().describe("Comma-separated list of relations to expand (e.g. 'budget,transactions')"),
+  // "exists[pointedAt]": booleanEnumSchema.optional(),
 });
 
 export type CategoryFilterDto = z.infer<typeof categoryFilterSchema>;

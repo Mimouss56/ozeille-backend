@@ -25,9 +25,10 @@ export class CategoriesService {
     return this.repository.create(ctx.userId, ctx.input);
   }
 
-  async findOne(ctx: RequestContext<unknown>, id: string, expand?: string): Promise<Category> {
-    const category = await this.repository.getById(ctx.userId, id, expand);
+  async findOne(ctx: RequestContext<unknown>, id: string): Promise<Category> {
+    const category = await this.repository.getById(ctx.userId, id);
 
+    // Sécurité : Si elle n'existe pas ou n'appartient pas au user
     if (!category) {
       throw new NotFoundException("The category with the given ID was not found.");
     }
