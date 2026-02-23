@@ -4,13 +4,13 @@ export class AuthTestContext {
   public userId: string;
 
   public readonly testUser = {
-    email: "e2e-auth-@localhost",
+    email: "e2e-auth-@test.com",
     password: "Password123!",
     firstName: "Validate2FA",
     lastName: "Doe",
   };
   public readonly testToken = "valid-confirmation-token";
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * Initialise les données nécessaires pour la suite de tests
@@ -28,5 +28,6 @@ export class AuthTestContext {
    */
   async cleanup(): Promise<void> {
     await this.prisma.user.deleteMany({ where: { email: this.testUser.email } });
+    await this.prisma.$disconnect();
   }
 }

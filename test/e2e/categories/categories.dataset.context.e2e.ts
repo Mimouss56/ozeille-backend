@@ -54,9 +54,6 @@ export class CategoriesTestContext {
   }
 
   async cleanup(): Promise<void> {
-    await this.prisma.category.deleteMany({ where: { userId: this.userId } });
-    await this.prisma.budget.deleteMany({ where: { userId: this.userId } });
-    await this.prisma.user.deleteMany({ where: { id: this.userId } });
     await this.prisma.$disconnect();
   }
 }
