@@ -17,6 +17,7 @@ jobs:
   test-module:
     name: Test ${{ inputs.module }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:17-alpine
@@ -77,7 +78,7 @@ jobs:
         run: |
           if [ -d "test/ti/${{ inputs.module }}" ]; then
              echo "::group::Running TI tests for module: ${{ inputs.module }}"
-             npx jest --testPathPattern="test/ti/${{ inputs.module }}/.*\.ti\.spec\.ts" --runInBand
+           npx jest --ci --testPathPattern="test/ti/${{ inputs.module }}/.*\.ti\.spec\.ts" --runInBand
              echo "::endgroup::"
           else
              echo "ℹ️ No TI tests for ${{ inputs.module }}"
@@ -87,7 +88,7 @@ jobs:
         run: |
           if [ -d "test/e2e/${{ inputs.module }}" ]; then
             echo "::group::Running E2E tests for module: ${{ inputs.module }}"
-            npx jest --testPathPattern="test/e2e/${{ inputs.module }}/.*\.e2e\.spec\.ts" --runInBand --detectOpenHandles
+            npx jest --ci --testPathPattern="test/e2e/${{ inputs.module }}/.*\.e2e\.spec\.ts" --runInBand --detectOpenHandles --forceExit
             echo "::endgroup::"
           else
             echo "ℹ️ No E2E tests found for module ${{ inputs.module }}"
