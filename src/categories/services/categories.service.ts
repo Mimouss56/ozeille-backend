@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { RequestContext } from "src/common/interfaces/request-context.interface";
 import { PaginatedDatabaseResponse } from "src/common/types";
 import { Category } from "src/generated/prisma/client";
@@ -17,10 +17,13 @@ export class CategoriesService {
   }
 
   async create(ctx: RequestContext<CreateCategoryDto>): Promise<Category> {
-    const categoryExists = await this.repository.findByLabelAndUserId(ctx.input.label, ctx.userId);
-
+    const categoryExists = await this.repository.findByLabelAndUserIdAndBudgetId(
+      ctx.input.label,
+      ctx.userId,
+      ctx.input.budgetId,
+    );
     if (categoryExists) {
-      throw new NotFoundException("A category with this label already exists.");
+      throw new ConflictException("A category with this label already exists for this budget.");
     }
     return this.repository.create(ctx.userId, ctx.input);
   }

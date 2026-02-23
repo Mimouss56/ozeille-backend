@@ -1,8 +1,8 @@
 import { INestApplication } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
 import { Test, TestingModule } from "@nestjs/testing";
 import { AppModule } from "src/app.module";
 import { PrismaService } from "src/prisma/prisma.service";
-import { RedisService } from "src/redis/services/redis.service";
 import request from "supertest";
 
 import type { CategoryDto } from "../../../src/categories/dto/category.dto";
@@ -11,7 +11,7 @@ import { CategoriesTestContext } from "./categories.dataset.context.e2e";
 describe("Categories E2E - GET categories", () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let redis: RedisService;
+  let jwtService: JwtService;
   let testContext: CategoriesTestContext;
   let accessToken: string;
 
@@ -24,27 +24,16 @@ describe("Categories E2E - GET categories", () => {
     await app.init();
 
     prisma = moduleFixture.get<PrismaService>(PrismaService);
-    redis = moduleFixture.get<RedisService>(RedisService);
+    jwtService = moduleFixture.get<JwtService>(JwtService);
 
     testContext = new CategoriesTestContext(prisma);
     await testContext.init();
-
-    const loginRes = await request(app.getHttpServer()).post("/api/auth/login").send({
-      email: testContext.userEmail,
-      password: testContext.password,
-    });
-    const tempToken = loginRes.body.tempToken;
-    const code = await redis.get(`2fa:${testContext.userId}`);
-    const validateRes = await request(app.getHttpServer()).post("/api/auth/2fa/validate").send({
-      tempToken,
-      code,
-    });
-    accessToken = validateRes.body.accessToken;
+    accessToken = await jwtService.signAsync({ sub: testContext.userId });
   }, 30000);
 
   afterAll(async () => {
     if (testContext) await testContext.cleanup();
-    if (redis) await redis.disconnect();
+    // plus de redis
     if (prisma) await prisma.$disconnect();
     await app.close();
   }, 10000);
