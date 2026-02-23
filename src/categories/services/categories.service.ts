@@ -28,19 +28,16 @@ export class CategoriesService {
     return this.repository.create(ctx.userId, ctx.input);
   }
 
-  async findOne(ctx: RequestContext<unknown>, id: string): Promise<Category> {
-    const category = await this.repository.getById(ctx.userId, id);
-
-    // Sécurité : Si elle n'existe pas ou n'appartient pas au user
+  async findOne(ctx: RequestContext<unknown>, id: string, expand?: string): Promise<Category> {
+    const category = await this.repository.getById(ctx.userId, id, expand);
     if (!category) {
       throw new NotFoundException("The category with the given ID was not found.");
     }
-
     return category;
   }
 
-  async update(ctx: RequestContext<UpdateCategoryDto>, id: string): Promise<Category> {
-    return this.repository.updateOne(ctx.userId, id, ctx.input);
+  async update(ctx: RequestContext<UpdateCategoryDto>, id: string, expand?: string): Promise<Category> {
+    return this.repository.updateOne(ctx.userId, id, ctx.input, expand);
   }
 
   async remove(ctx: RequestContext<unknown>, id: string): Promise<Category> {

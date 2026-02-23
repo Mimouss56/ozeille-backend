@@ -5,6 +5,7 @@ import {
   ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
+  ApiQuery,
   ApiTags,
 } from "@nestjs/swagger";
 import { JwtAuthGuard } from "src/auth/guards/jwt-auth.guard";
@@ -66,8 +67,22 @@ export class CategoriesController {
     description: "The category with the given ID was not found.",
     type: ErrorResponse,
   })
-  async findOne(@Param("id", ParseUUIDPipe) id: string, @Ctx() ctx: RequestContext<unknown>): Promise<Category> {
-    return this.categoriesService.findOne(ctx, id);
+  @Get(":id")
+  @ApiOkResponse({
+    type: CategoryResponse,
+    description: "The category found",
+  })
+  @ApiNotFoundResponse({
+    description: "The category with the given ID was not found.",
+    type: ErrorResponse,
+  })
+  @ApiQuery({ name: "expand", required: false, description: "Relations to expand (e.g. 'budget,transactions')" })
+  async findOne(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Ctx() ctx: RequestContext<unknown>,
+    @Query("expand") expand?: string,
+  ): Promise<Category> {
+    return this.categoriesService.findOne(ctx, id, expand);
   }
 
   @Put(":id")
@@ -87,8 +102,9 @@ export class CategoriesController {
     @Param("id", ParseUUIDPipe) id: string,
     @Body() _updateCategoryRequest: UpdateCategoryRequest,
     @Ctx() ctx: RequestContext<UpdateCategoryDto>,
+    @Query("expand") expand?: string,
   ): Promise<Category> {
-    return this.categoriesService.update(ctx, id);
+    return this.categoriesService.update(ctx, id, expand);
   }
 
   @Delete(":id")
