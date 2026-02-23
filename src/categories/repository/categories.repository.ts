@@ -12,12 +12,12 @@ export class CategoriesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async getAll(userId: string, params: CategoryFilters): Promise<PaginatedDatabaseResponse<Category>> {
-    const { limit, page, expand, } = params;
+    const { limit, page, expand } = params;
     const skip = (page - 1) * limit;
     const take = limit;
 
     // Gestion du paramètre expand (transactions, budget, etc.)
-    const expandMap: Record<string, any> = {
+    const expandMap: Record<string, unknown> = {
       transactions: { transactions: true },
       budget: { budget: true },
     };
@@ -69,7 +69,7 @@ export class CategoriesRepository {
   }
 
   async getById(userId: string, id: string, expand?: string): Promise<Category | null> {
-    const expandMap: Record<string, any> = {
+    const expandMap: Record<string, unknown> = {
       transactions: { transactions: true },
       budget: { budget: true },
     };
@@ -94,7 +94,7 @@ export class CategoriesRepository {
     if (!existingCategory) {
       throw new NotFoundException(`Category with ID ${id} not found`);
     }
-    const expandMap: Record<string, any> = {
+    const expandMap: Record<string, unknown> = {
       transactions: { transactions: true },
       budget: { budget: true },
     };
