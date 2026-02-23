@@ -1,5 +1,5 @@
-import * as bcrypt from "bcrypt";
 import { PrismaService } from "src/prisma/prisma.service";
+import { createTestUser } from "test/utils/createTestUser";
 
 export class BudgetsTestContext {
   public userId: string;
@@ -12,16 +12,12 @@ export class BudgetsTestContext {
   constructor(private readonly prisma: PrismaService) {}
 
   async init(): Promise<void> {
-    const hashedPassword = await bcrypt.hash(this.password, 10);
-
-    const user = await this.prisma.user.create({
-      data: {
-        email: this.userEmail,
-        password: hashedPassword,
-        firstName: "Budget",
-        lastName: "Tester",
-        confirmedAt: new Date(),
-      },
+    const user = await createTestUser(this.prisma, {
+      email: this.userEmail,
+      password: this.password,
+      firstName: "Budget",
+      lastName: "Tester",
+      confirmedAt: new Date(),
     });
     this.userId = user.id;
 

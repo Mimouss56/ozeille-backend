@@ -1,4 +1,5 @@
 import { PrismaService } from "src/prisma/prisma.service";
+import { createTestUser } from "test/utils/createTestUser";
 
 export class AuthTestContext {
   public userId: string;
@@ -16,10 +17,8 @@ export class AuthTestContext {
    * Initialise les données nécessaires pour la suite de tests
    */
   async init(): Promise<void> {
-    // Création d'un utilisateur pour les tests
-    const user = await this.prisma.user.create({
-      data: this.testUser,
-    });
+    // Création ou récupération d'un utilisateur pour les tests
+    const user = await createTestUser(this.prisma, this.testUser);
     this.userId = user.id;
   }
 }

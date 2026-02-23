@@ -1,5 +1,5 @@
-import * as bcrypt from "bcrypt";
 import { PrismaService } from "src/prisma/prisma.service";
+import { createTestUser } from "test/utils/createTestUser";
 
 export class CategoriesTestContext {
   public userId: string;
@@ -15,21 +15,13 @@ export class CategoriesTestContext {
   constructor(private readonly prisma: PrismaService) {}
 
   async init(): Promise<void> {
-    // 1. Hashage du mot de passe pour la DB
-    const hashedPassword = await bcrypt.hash(this.password, 10);
-
-    // 2. CRÉATION DU USER (ou récupération si déjà présent)
-    let user = await this.prisma.user.findUnique({
-      where: { email: this.userEmail },
-    });
-    user ??= await this.prisma.user.create({
-      data: {
-        email: this.userEmail,
-        password: hashedPassword,
-        firstName: "Cat",
-        lastName: "E2E",
-        confirmedAt: new Date(),
-      },
+    // 1. Création ou récupération du user via utilitaire
+    const user = await createTestUser(this.prisma, {
+      email: this.userEmail,
+      password: this.password,
+      firstName: "Cat",
+      lastName: "E2E",
+      confirmedAt: new Date(),
     });
     this.userId = user.id;
 
@@ -54,5 +46,13 @@ export class CategoriesTestContext {
       },
     });
     this.existingCategoryId = category.id;
+  }
+  async cleanup(): Promise<void> {
+    // Suppression des catégories liées au user
+    await this.prisma.category.deleteMany({ where: { userId: this.userId } });
+    // Suppression des budgets liés au user
+    await this.prisma.budget.deleteMany({ where: { userId: this.userId } });
+    // Suppression du user
+    await this.prisma.user.deleteMany({ where: { email: this.userEmail } });
   }
 }
