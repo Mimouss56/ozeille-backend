@@ -5,6 +5,7 @@ import {
   ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
+  ApiQuery,
   ApiTags,
 } from "@nestjs/swagger";
 import { JwtAuthGuard } from "src/auth/guards/jwt-auth.guard";
@@ -66,6 +67,7 @@ export class CategoriesController {
     description: "The category with the given ID was not found.",
     type: ErrorResponse,
   })
+  @ApiQuery({ name: "expand", required: false, description: "Relations to expand (e.g. 'budget,transactions')" })
   async findOne(@Param("id", ParseUUIDPipe) id: string, @Ctx() ctx: RequestContext<unknown>): Promise<Category> {
     return this.categoriesService.findOne(ctx, id);
   }
