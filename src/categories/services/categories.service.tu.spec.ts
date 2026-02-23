@@ -1,5 +1,7 @@
 import { ConflictException } from "@nestjs/common";
 
+import { CategoriesService } from "./categories.service";
+
 const mockRepo = {
   findByLabelAndUserIdAndBudgetId: jest.fn(),
   create: jest.fn(),
