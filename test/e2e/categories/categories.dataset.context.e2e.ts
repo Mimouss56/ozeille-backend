@@ -18,13 +18,16 @@ export class CategoriesTestContext {
     // 1. Hashage du mot de passe pour la DB
     const hashedPassword = await bcrypt.hash(this.password, 10);
 
-    // 2. CRÉATION DU USER
-    const user = await this.prisma.user.create({
+    // 2. CRÉATION DU USER (ou récupération si déjà présent)
+    let user = await this.prisma.user.findUnique({
+      where: { email: this.userEmail },
+    });
+    user ??= await this.prisma.user.create({
       data: {
         email: this.userEmail,
         password: hashedPassword,
-        firstName: "Jean",
-        lastName: "Dupont",
+        firstName: "Cat",
+        lastName: "E2E",
         confirmedAt: new Date(),
       },
     });

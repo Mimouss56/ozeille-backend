@@ -31,7 +31,6 @@ describe("POST /api/auth/register/confirm (e2e)", () => {
   afterAll(async () => {
     if (redis) await redis.disconnect();
     if (prisma) await prisma.$disconnect();
-    await testContext.cleanup();
   }, 10000);
 
   it("devrait confirmer l'email avec un token valide", async () => {
