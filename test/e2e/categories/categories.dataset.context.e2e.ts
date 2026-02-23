@@ -12,7 +12,7 @@ export class CategoriesTestContext {
   public readonly budgetLabel = "Budget E2E";
   public existingCategoryId: string;
 
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async init(): Promise<void> {
     // 1. Hashage du mot de passe pour la DB
@@ -22,10 +22,10 @@ export class CategoriesTestContext {
     const user = await this.prisma.user.create({
       data: {
         email: this.userEmail,
-        password: hashedPassword, // 👈 Utilisation du hash
+        password: hashedPassword,
         firstName: "Jean",
         lastName: "Dupont",
-        confirmedAt: new Date(), // Important : user confirmé
+        confirmedAt: new Date(),
       },
     });
     this.userId = user.id;

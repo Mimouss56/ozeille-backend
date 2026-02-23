@@ -1,17 +1,17 @@
 import { INestApplication } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
 import { Test, TestingModule } from "@nestjs/testing";
 import { AppModule } from "src/app.module";
 import { PrismaService } from "src/prisma/prisma.service";
-import { RedisService } from "src/redis/services/redis.service";
 // Vérifiez ce chemin d'import selon votre projet
 import request from "supertest";
 
 import { CategoriesTestContext } from "./categories.dataset.context.e2e";
 
-describe.skip("Categories E2E - POST categories", () => {
+describe("Categories E2E - POST categories", () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let redis: RedisService;
+  let jwtService: JwtService;
   let testContext: CategoriesTestContext;
   let accessToken: string;
 
@@ -24,39 +24,16 @@ describe.skip("Categories E2E - POST categories", () => {
     await app.init();
 
     prisma = moduleFixture.get<PrismaService>(PrismaService);
-    redis = moduleFixture.get<RedisService>(RedisService);
+    jwtService = moduleFixture.get<JwtService>(JwtService);
 
     testContext = new CategoriesTestContext(prisma);
     await testContext.init();
-
-    // 1. Login pour obtenir le tempToken
-    const loginRes = await request(app.getHttpServer()).post("/api/auth/login").send({
-      email: testContext.userEmail,
-      password: testContext.password, // "Password123!"
-    });
-
-    // Si ça échoue ici, c'est souvent que le user n'est pas confirmedAt en base
-    if (loginRes.status !== 201) {
-      console.error("Login failed:", loginRes.body);
-    }
-    const tempToken = loginRes.body.tempToken;
-
-    // 2. Récupération du code 2FA dans Redis
-    // La clé dépend de votre implémentation (ex: "2fa:UUID")
-    const code = await redis.get(`2fa:${testContext.userId}`);
-
-    // 3. Validation du code pour obtenir l'accessToken
-    const validateRes = await request(app.getHttpServer()).post("/api/auth/2fa/validate").send({
-      tempToken,
-      code,
-    });
-
-    accessToken = validateRes.body.accessToken;
+    accessToken = await jwtService.signAsync({ sub: testContext.userId });
   }, 30000);
 
   afterAll(async () => {
     if (testContext) await testContext.cleanup();
-    if (redis) await redis.disconnect();
+    // plus de redis
     if (prisma) await prisma.$disconnect();
     await app.close();
   }, 10000);
@@ -71,6 +48,9 @@ describe.skip("Categories E2E - POST categories", () => {
         // budgetId manquant
       });
     expect(res.status).toBe(400);
+    expect(res.body.message).toBe("Validation failed");
+    expect(Array.isArray(res.body.errors)).toBe(true);
+    expect(res.body.errors.some((error: { path?: string[] }) => error.path?.includes("budgetId"))).toBe(true);
   });
 
   it("doit retourner 400 si budgetId n'est pas un uuid", async () => {
@@ -83,6 +63,9 @@ describe.skip("Categories E2E - POST categories", () => {
         color: "#ffffff",
       });
     expect(res.status).toBe(400);
+    expect(res.body.message).toBe("Validation failed");
+    expect(Array.isArray(res.body.errors)).toBe(true);
+    expect(res.body.errors.some((error: { path?: string[] }) => error.path?.includes("budgetId"))).toBe(true);
   });
 
   it("doit retourner 400 si label est manquant", async () => {
@@ -95,6 +78,9 @@ describe.skip("Categories E2E - POST categories", () => {
         // label manquant
       });
     expect(res.status).toBe(400);
+    expect(res.body.message).toBe("Validation failed");
+    expect(Array.isArray(res.body.errors)).toBe(true);
+    expect(res.body.errors.some((error: { path?: string[] }) => error.path?.includes("label"))).toBe(true);
   });
 
   it("doit retourner 404 (ou 406) si budgetId n'existe pas en base", async () => {
