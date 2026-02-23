@@ -88,7 +88,8 @@ describe("CategoriesController", () => {
       mockCategoriesService.findOne.mockResolvedValue(result);
 
       expect(await controller.findOne("cat-1", mockCtx)).toBe(result);
-      expect(service.findOne).toHaveBeenCalledWith(mockCtx, "cat-1");
+      // Signature: (ctx, id, expand?)
+      expect(service.findOne).toHaveBeenCalledWith(mockCtx, "cat-1", undefined);
     });
   });
 
@@ -105,7 +106,8 @@ describe("CategoriesController", () => {
       mockCategoriesService.update.mockResolvedValue(result);
 
       expect(await controller.update("cat-1", dto, ctxWithInput)).toBe(result);
-      expect(service.update).toHaveBeenCalledWith(ctxWithInput, "cat-1");
+      // Signature: (ctx, id, expand?)
+      expect(service.update).toHaveBeenCalledWith(ctxWithInput, "cat-1", undefined);
     });
   });
 
