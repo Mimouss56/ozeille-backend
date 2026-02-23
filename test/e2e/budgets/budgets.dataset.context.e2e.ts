@@ -1,5 +1,4 @@
 import { PrismaService } from "src/prisma/prisma.service";
-import { createTestUser } from "test/utils/createTestUser";
 
 export class BudgetsTestContext {
   public userId: string;
@@ -12,12 +11,18 @@ export class BudgetsTestContext {
   constructor(private readonly prisma: PrismaService) {}
 
   async init(): Promise<void> {
-    const user = await createTestUser(this.prisma, {
-      email: this.userEmail,
-      password: this.password,
-      firstName: "Budget",
-      lastName: "Tester",
-      confirmedAt: new Date(),
+    // Création ou récupération du user (autonome, sans import)
+    const bcrypt = await import("bcrypt");
+    const hashedPassword = await bcrypt.default.hash(this.password, 10);
+    let user = await this.prisma.user.findUnique({ where: { email: this.userEmail } });
+    user ??= await this.prisma.user.create({
+      data: {
+        email: this.userEmail,
+        password: hashedPassword,
+        firstName: "Budget",
+        lastName: "Tester",
+        confirmedAt: new Date(),
+      },
     });
     this.userId = user.id;
 

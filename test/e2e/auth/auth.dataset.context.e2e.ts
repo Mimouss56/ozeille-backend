@@ -1,5 +1,4 @@
 import { PrismaService } from "src/prisma/prisma.service";
-import { createTestUser } from "test/utils/createTestUser";
 
 export class AuthTestContext {
   public userId: string;
@@ -9,6 +8,7 @@ export class AuthTestContext {
     password: "Password123!",
     firstName: "Validate2FA",
     lastName: "Doe",
+    confirmedAt: new Date(),
   };
   public readonly testToken = "valid-confirmation-token";
   constructor(private readonly prisma: PrismaService) {}
@@ -18,7 +18,13 @@ export class AuthTestContext {
    */
   async init(): Promise<void> {
     // Création ou récupération d'un utilisateur pour les tests
-    const user = await createTestUser(this.prisma, this.testUser);
+    const { email, password, firstName, lastName, confirmedAt } = this.testUser;
+    const bcrypt = await import("bcrypt");
+    const hashedPassword = await bcrypt.default.hash(password, 10);
+    let user = await this.prisma.user.findUnique({ where: { email } });
+    user ??= await this.prisma.user.create({
+      data: { email, password: hashedPassword, firstName, lastName, confirmedAt },
+    });
     this.userId = user.id;
   }
 }
