@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import dayjs from "dayjs";
 import { SummaryCategoryResponseDto } from "src/categories/dto/get-summary-categories-response.dto";
-import { Budget } from "src/generated/prisma/client";
+import { Budget, Prisma } from "src/generated/prisma/client";
 import { PrismaService } from "src/prisma/prisma.service";
 
-import { BudgetFilters, SummaryBudgetFilters } from "../dto/buget-filter.dto";
+import { BudgetExpand, BudgetFilters, SummaryBudgetFilters } from "../dto/buget-filter.dto";
 import { CreateBudgetRequest } from "../dto/create-budget.dto";
 import { GetSummaryBudgetResponseDto } from "../dto/responses/get-summary-budget.response.dto";
 import { SummaryUpComingBillsResponseDto } from "../dto/responses/up-coming-budget.response.dto";
@@ -19,9 +19,9 @@ export class BudgetsRepository {
   async getAll(userId: string, params: BudgetFilters): Promise<Budget[]> {
     const fromDate = params.from ? new Date(params.from) : undefined;
     const toDate = params.to ? new Date(params.to) : undefined;
-    return this.prisma.budget.findMany({
-      where: { userId },
-      include: {
+
+    const expandMap: Record<string, Prisma.BudgetInclude> = {
+      [BudgetExpand.CATEGORIES]: {
         categories: {
           include: {
             transactions: {
@@ -32,7 +32,51 @@ export class BudgetsRepository {
           },
         },
       },
+    };
+
+    const expands = params.expand ? params.expand.split(",") : [];
+
+    const include =
+      expands.length > 0
+        ? expands.reduce<Prisma.BudgetInclude>((acc, currentExpand) => {
+            if (expandMap[currentExpand]) {
+              return { ...acc, ...expandMap[currentExpand] };
+            }
+            return acc;
+          }, {})
+        : undefined;
+
+    return this.prisma.budget.findMany({
+      where: { userId },
+      include,
       orderBy: { label: "asc" },
+    });
+  }
+
+  async getById(userId: string, id: string, expand?: string): Promise<Budget | null> {
+    const expandMap: Record<string, Prisma.BudgetInclude> = {
+      [BudgetExpand.CATEGORIES]: {
+        categories: {
+          include: { transactions: true },
+        },
+      },
+    };
+
+    const expands = expand ? expand.split(",") : [];
+
+    const include =
+      expands.length > 0
+        ? expands.reduce<Prisma.BudgetInclude>((acc, currentExpand) => {
+            if (expandMap[currentExpand]) {
+              return { ...acc, ...expandMap[currentExpand] };
+            }
+            return acc;
+          }, {})
+        : undefined;
+
+    return this.prisma.budget.findUnique({
+      where: { id, userId },
+      include,
     });
   }
 
@@ -42,13 +86,6 @@ export class BudgetsRepository {
         ...budget,
         user: { connect: { id: userId } },
       },
-    });
-  }
-
-  async getById(userId: string, id: string): Promise<Budget | null> {
-    return this.prisma.budget.findUnique({
-      where: { id, userId },
-      include: { categories: true },
     });
   }
 
