@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PaginatedDatabaseResponse } from "src/common/types";
-import { Category } from "src/generated/prisma/client";
+import { Category, Prisma } from "src/generated/prisma/client";
 import { PrismaService } from "src/prisma/prisma.service";
 
-import { CategoryFilters } from "../dto/category-filter.dto";
+import { CategoryExpand, CategoryFilters } from "../dto/category-filter.dto";
 import { CreateCategoryRequest } from "../dto/create-category.dto";
 import { UpdateCategoryRequest } from "../dto/update-category.dto";
 
@@ -11,9 +11,30 @@ import { UpdateCategoryRequest } from "../dto/update-category.dto";
 export class CategoriesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getAll(userId: string, { limit, page }: CategoryFilters): Promise<PaginatedDatabaseResponse<Category>> {
+  private buildInclude(expand?: string): Prisma.CategoryInclude | undefined {
+    const expandMap: Record<string, Prisma.CategoryInclude> = {
+      [CategoryExpand.BUDGET]: { budget: true },
+      [CategoryExpand.TRANSACTIONS]: {
+        transactions: { orderBy: { dueAt: "desc" } },
+      },
+    };
+
+    const expands = expand ? expand.split(",") : [];
+
+    return expands.length > 0
+      ? expands.reduce<Prisma.CategoryInclude>((acc, currentExpand) => {
+          if (expandMap[currentExpand]) {
+            return { ...acc, ...expandMap[currentExpand] };
+          }
+          return acc;
+        }, {})
+      : undefined;
+  }
+  async getAll(userId: string, params: CategoryFilters): Promise<PaginatedDatabaseResponse<Category>> {
+    const { page, limit, expand } = params;
     const skip = (page - 1) * limit;
     const take = limit;
+    const include = this.buildInclude(expand);
     const [categories, count] = await this.prisma.$transaction([
       this.prisma.category.findMany({
         where: { userId },
@@ -22,7 +43,7 @@ export class CategoriesRepository {
         orderBy: {
           label: "asc",
         },
-        include: { budget: true },
+        include,
       }),
       this.prisma.category.count({
         where: { userId },
@@ -50,22 +71,25 @@ export class CategoriesRepository {
     });
   }
 
-  async getById(userId: string, id: string): Promise<Category | null> {
+  async getById(userId: string, id: string, expand?: string): Promise<Category | null> {
+    const include = this.buildInclude(expand);
     return this.prisma.category.findFirst({
       where: { id, userId },
+      include,
     });
   }
 
-  async updateOne(userId: string, id: string, data: UpdateCategoryRequest): Promise<Category> {
+  async updateOne(userId: string, id: string, data: UpdateCategoryRequest, expand?: string): Promise<Category> {
     const existingCategory = await this.getById(userId, id);
 
     if (!existingCategory) {
       throw new NotFoundException(`Category with ID ${id} not found`);
     }
 
+    const include = this.buildInclude(expand);
     return this.prisma.category.update({
       where: { id },
-      include: { budget: true },
+      include,
       data,
     });
   }
