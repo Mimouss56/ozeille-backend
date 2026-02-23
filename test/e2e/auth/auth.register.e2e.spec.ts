@@ -35,7 +35,6 @@ describe("POST /api/auth/register (e2e)", () => {
   }, 30000);
 
   afterAll(async () => {
-    await ctx.cleanup();
     if (redis) await redis.disconnect();
     if (prisma) await prisma.$disconnect();
   }, 10000);

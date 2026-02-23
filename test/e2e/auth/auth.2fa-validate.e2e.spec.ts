@@ -30,6 +30,7 @@ describe("POST /api/auth/2fa/validate (e2e)", () => {
     await ctx.cleanup();
     if (redis) await redis.disconnect();
     if (prisma) await prisma.$disconnect();
+    app.close();
   }, 10000);
 
   beforeEach(async () => {

@@ -22,12 +22,4 @@ export class AuthTestContext {
     });
     this.userId = user.id;
   }
-
-  /**
-   * Nettoie toutes les données liées à ce contexte
-   */
-  async cleanup(): Promise<void> {
-    await this.prisma.user.deleteMany({ where: { email: this.testUser.email } });
-    await this.prisma.$disconnect();
-  }
 }

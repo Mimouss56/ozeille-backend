@@ -37,9 +37,6 @@ describe("POST /api/auth/login (e2e)", () => {
   }, 30000);
 
   afterAll(async () => {
-    // --- NETTOYAGE DU DATASET ---
-    if (testContext) await testContext.cleanup();
-
     if (redis) await redis.disconnect();
     if (prisma) await prisma.$disconnect();
     await app.close();

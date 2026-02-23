@@ -32,7 +32,6 @@ describe("Budgets E2E - GET budgets", () => {
   }, 30000);
 
   afterAll(async () => {
-    if (testContext) await testContext.cleanup();
     if (prisma) await prisma.$disconnect();
     await app.close();
   }, 10000);

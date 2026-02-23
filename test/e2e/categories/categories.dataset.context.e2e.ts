@@ -52,8 +52,4 @@ export class CategoriesTestContext {
     });
     this.existingCategoryId = category.id;
   }
-
-  async cleanup(): Promise<void> {
-    await this.prisma.$disconnect();
-  }
 }

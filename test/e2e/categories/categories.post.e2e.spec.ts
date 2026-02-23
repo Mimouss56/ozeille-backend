@@ -32,8 +32,6 @@ describe("Categories E2E - POST categories", () => {
   }, 30000);
 
   afterAll(async () => {
-    if (testContext) await testContext.cleanup();
-    // plus de redis
     if (prisma) await prisma.$disconnect();
     await app.close();
   }, 10000);
