@@ -9,12 +9,11 @@ on:
       - "prisma/**"
       - "package*.json"
 
-permissions:
-  contents: read
-  pull-requests: read
-
 jobs:
   detect-changes:
+    permissions:
+      contents: read
+      pull-requests: read
     name: Detect Changed Modules
     runs-on: ubuntu-latest
     outputs:
@@ -85,6 +84,9 @@ jobs:
 
   # Lancement dynamique des tests
   test-modules:
+    permissions:
+      contents: read
+      pull-requests: read
     name: Test ${{ matrix.module }}
     needs: detect-changes
     if: needs.detect-changes.outputs.has-changes == 'true'
@@ -96,6 +98,9 @@ jobs:
       module: ${{ matrix.module }}
       node-version: "22"
   test-cov:
+    permissions:
+      contents: read
+      pull-requests: read
     name: Test Coverage
     needs: test-modules
     runs-on: ubuntu-latest
@@ -123,4 +128,3 @@ jobs:
         with:
           name: coverage-report
           path: coverage/
-
