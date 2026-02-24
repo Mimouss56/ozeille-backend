@@ -16,6 +16,7 @@ describe("CategoriesRepository - create (TI)", () => {
         findUnique: jest.fn(),
         update: jest.fn(),
         delete: jest.fn(),
+        findFirst: jest.fn(),
       },
     } as unknown as jest.Mocked<PrismaService>;
     repository = new CategoriesRepository(mockPrisma);
