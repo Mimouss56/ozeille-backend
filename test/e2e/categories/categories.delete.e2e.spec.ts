@@ -5,7 +5,7 @@ import { AppModule } from "src/app.module";
 import { PrismaService } from "src/prisma/prisma.service";
 import request from "supertest";
 
-import { CategoriesTestContext } from "./categories.dataset.context.e2e";
+import { CategoriesTestContext } from "./categories.test.context.e2e";
 
 describe("Categories E2E - DELETE /api/categories/:id", () => {
   let app: INestApplication;

@@ -6,7 +6,8 @@ import type { CategoryDto } from "src/categories/dto/category.dto";
 import { PrismaService } from "src/prisma/prisma.service";
 import request from "supertest";
 
-import { CategoriesDataset, CategoriesTestContext } from "./categories.test.context.e2e";
+import { CategoriesTestContext } from "./categories.test.context.e2e";
+import { CategoriesDataset } from "./categories.dataset.e2e";
 
 describe("GET /api/categories (e2e)", () => {
   let app: INestApplication;
