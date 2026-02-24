@@ -13,7 +13,7 @@ export const CategoriesDataset = {
   existingCategory: {
     label: "Catégorie Existante",
     color: "#e74c3c",
-    limitAmount: 500.0,
+    limitAmount: 500,
   },
   newCategory: {
     label: "Catégorie Succès",
