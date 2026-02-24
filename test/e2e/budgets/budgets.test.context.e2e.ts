@@ -45,6 +45,7 @@ export class BudgetsTestContext {
         ...BudgetsDataset.category,
         userId: this.userId,
         budgetId: this.existingBudgetId,
+        type: "EXPENSE",
       },
     });
     this.categoryId = category.id;

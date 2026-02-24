@@ -56,7 +56,7 @@ describe("POST /api/categories (e2e)", () => {
       .expect(400);
 
     expect(res.body.message).toBe("Validation failed");
-    expect(res.body.errors.some((error: any) => error.path?.includes("budgetId"))).toBe(true);
+    expect(res.body.errors.some((error) => error.path?.includes("budgetId"))).toBe(true);
   });
 
   it("doit retourner 400 si budgetId n'est pas un uuid", async () => {
@@ -70,7 +70,7 @@ describe("POST /api/categories (e2e)", () => {
       })
       .expect(400);
 
-    expect(res.body.errors.some((error: any) => error.path?.includes("budgetId"))).toBe(true);
+    expect(res.body.errors.some((error) => error.path?.includes("budgetId"))).toBe(true);
   });
 
   it("doit retourner 400 si label est manquant", async () => {
@@ -83,7 +83,7 @@ describe("POST /api/categories (e2e)", () => {
       })
       .expect(400);
 
-    expect(res.body.errors.some((error: any) => error.path?.includes("label"))).toBe(true);
+    expect(res.body.errors.some((error) => error.path?.includes("label"))).toBe(true);
   });
 
   it("doit créer une catégorie (succès)", async () => {

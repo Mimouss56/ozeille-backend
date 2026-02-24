@@ -75,6 +75,6 @@ describe("Categories E2E - PUT /api/categories/:id", () => {
       })
       .expect(400);
 
-    expect(res.body.errors.some((error: any) => error.path?.includes("color"))).toBe(true);
+    expect(res.body.errors.some((error) => error.path?.includes("color"))).toBe(true);
   });
 });
