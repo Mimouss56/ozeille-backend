@@ -18,9 +18,9 @@
     "test:cov": "cross-env NODE_ENV=test jest --coverage --coverageThreshold='{\"global\":{\"lines\":70,\"statements\":70}}'",
     "test:debug": "cross-env NODE_ENV=test node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand --detectOpenHandles",
     "test:e2e": "cross-env NODE_ENV=test jest --config ./test/jest-e2e.json",
-    "test:ti": "cross-env NODE_ENV=test jest --testPathPattern=\"test/ti/.*\\.ti\\.spec\\.ts$\" --runInBand --detectOpenHandles",
-    "test:ti:module": "cross-env NODE_ENV=test jest --testPathPattern=\"test/ti/$MODULE/.*\\.ti\\.spec\\.ts$\" --runInBand --detectOpenHandles",
-    "test:e2e:module": "cross-env NODE_ENV=test jest --testPathPattern=\"test/e2e/$MODULE/.*\\.e2e\\.spec\\.ts$\" --runInBand --detectOpenHandles",
+    "test:ti": "cross-env NODE_ENV=test jest --testPathPatterns=\"test/ti/.*\\.ti\\.spec\\.ts$\" --runInBand --detectOpenHandles",
+    "test:ti:module": "cross-env NODE_ENV=test jest --testPathPatterns=\"test/ti/$MODULE/.*\\.ti\\.spec\\.ts$\" --runInBand --detectOpenHandles",
+    "test:e2e:module": "cross-env NODE_ENV=test jest --testPathPatterns=\"test/e2e/$MODULE/.*\\.e2e\\.spec\\.ts$\" --runInBand --detectOpenHandles",
     "prisma:generate": "npx prisma generate",
     "prisma:migrate": "npx prisma migrate dev",
     "prisma:studio": "npx prisma studio"
