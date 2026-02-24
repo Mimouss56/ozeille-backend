@@ -95,3 +95,40 @@ jobs:
     with:
       module: ${{ matrix.module }}
       node-version: "22"
+  test-cov:
+    name: Test Coverage
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has-changes == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm ci
+      - name: Run Coverage (npm run test:cov)
+        id: coverage
+        run: |
+          npm run test:cov || echo "::set-output name=failed::true"
+      - name: Parse Coverage Summary
+        if: steps.coverage.outputs.failed == 'true'
+        id: parse_cov
+        run: |
+          SUMMARY=$(cat coverage/coverage-summary.json | jq -r '.total.lines | "Lignes: "+(.covered|tostring)+"/"+(.total|tostring)+" ("+(.pct|tostring)+"%)"')
+          echo "::set-output name=summary::$SUMMARY"
+      - name: Comment Coverage on PR (on failure)
+        if: steps.coverage.outputs.failed == 'true'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          message: |
+            ❌ **Échec des tests de couverture**
+            Résumé : ${{ steps.parse_cov.outputs.summary }}
+            Consultez l'artifact pour le détail complet.
+      - name: Upload Coverage Artifact (on failure)
+        if: steps.coverage.outputs.failed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
