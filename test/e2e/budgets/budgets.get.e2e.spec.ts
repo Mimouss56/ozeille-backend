@@ -69,7 +69,7 @@ describe("Budgets E2E - GET /api/budgets", () => {
       .set("Authorization", `Bearer ${testContext.accessToken}`)
       .expect(200);
 
-    const budget = res.body.find((item: any) => item.id === testContext.existingBudgetId);
+    const budget = res.body.find((item) => item.id === testContext.existingBudgetId);
     expect(budget.categories).toBeDefined();
     expect(budget.categories.length).toBeGreaterThan(0);
   });
