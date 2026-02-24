@@ -39,7 +39,14 @@ export class CategoriesTestContext {
     });
     this.budgetId = budget.id;
 
-    // 4. CRÉATION DE LA CATÉGORIE
+    // 4. SUPPRESSION DE LA CATÉGORIE EXISTANTE (si présente)
+    await this.prisma.category.deleteMany({
+      where: {
+        label: this.existingCategoryLabel,
+        userId: this.userId,
+      },
+    });
+    // CRÉATION DE LA CATÉGORIE
     const category = await this.prisma.category.create({
       data: {
         label: this.existingCategoryLabel,
@@ -52,11 +59,9 @@ export class CategoriesTestContext {
     this.existingCategoryId = category.id;
   }
   async cleanup(): Promise<void> {
-    // Suppression des catégories liées au user
+    // Suppression globale après tous les tests
     await this.prisma.category.deleteMany({ where: { userId: this.userId } });
-    // Suppression des budgets liés au user
     await this.prisma.budget.deleteMany({ where: { userId: this.userId } });
-    // Suppression du user
     await this.prisma.user.deleteMany({ where: { email: this.userEmail } });
   }
 }

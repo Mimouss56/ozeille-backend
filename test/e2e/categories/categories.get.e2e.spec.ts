@@ -32,6 +32,8 @@ describe("Categories E2E - GET categories", () => {
   }, 30000);
 
   afterAll(async () => {
+    // Nettoyage des données de test
+    if (testContext) await testContext.cleanup();
     if (prisma) await prisma.$disconnect();
     await app.close();
   }, 10000);
