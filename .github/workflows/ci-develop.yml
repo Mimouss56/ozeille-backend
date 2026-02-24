@@ -60,7 +60,7 @@ jobs:
       # 2. Exécution des Tests Unitaires (TU)
       # On utilise "npm test" en forçant le dossier src/ pour isoler les TU
       - name: Run Unit Tests (TU)
-        run: npm test -- --ci --testPathPattern="src/.*\.spec\.ts" --passWithNoTests
+        run: npm test -- --ci --testPathPatterns="src/.*\.spec\.ts" --passWithNoTests
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
           REDIS_HOST: localhost
