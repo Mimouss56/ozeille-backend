@@ -12,7 +12,7 @@ describe("Categories E2E - DELETE /api/categories/:id", () => {
   let prisma: PrismaService;
   let jwtService: JwtService;
   let testContext: CategoriesTestContext;
-  let accessToken: string;
+
   let categoryToDeleteId: string;
 
   beforeAll(async () => {
@@ -28,7 +28,7 @@ describe("Categories E2E - DELETE /api/categories/:id", () => {
 
     testContext = new CategoriesTestContext(prisma);
     await testContext.init();
-    accessToken = await jwtService.signAsync({ sub: testContext.userId });
+    // accessToken est maintenant généré dans le testContext
   }, 30000);
 
   beforeEach(async () => {
@@ -53,7 +53,7 @@ describe("Categories E2E - DELETE /api/categories/:id", () => {
   it("doit supprimer la catégorie existante avec succès", async () => {
     const res = await request(app.getHttpServer())
       .delete(`/api/categories/${categoryToDeleteId}`)
-      .set("Authorization", `Bearer ${accessToken}`)
+      .set("Authorization", `Bearer ${testContext.accessToken}`)
       .expect(200);
 
     expect(res.body.id).toBe(categoryToDeleteId);
@@ -67,7 +67,7 @@ describe("Categories E2E - DELETE /api/categories/:id", () => {
     // On utilise un UUID aléatoire
     const res = await request(app.getHttpServer())
       .delete(`/api/categories/123e4567-e89b-12d3-a456-426614174000`)
-      .set("Authorization", `Bearer ${accessToken}`)
+      .set("Authorization", `Bearer ${testContext.accessToken}`)
       .expect(404);
 
     expect(res.body.message).toMatch(/not found/i);

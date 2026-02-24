@@ -6,8 +6,8 @@ import type { CategoryDto } from "src/categories/dto/category.dto";
 import { PrismaService } from "src/prisma/prisma.service";
 import request from "supertest";
 
-import { CategoriesTestContext } from "./categories.test.context.e2e";
 import { CategoriesDataset } from "./categories.dataset.e2e";
+import { CategoriesTestContext } from "./categories.test.context.e2e";
 
 describe("GET /api/categories (e2e)", () => {
   let app: INestApplication;
@@ -27,9 +27,9 @@ describe("GET /api/categories (e2e)", () => {
     prisma = moduleFixture.get<PrismaService>(PrismaService);
     jwtService = moduleFixture.get<JwtService>(JwtService);
 
-    testContext = new CategoriesTestContext(prisma);
+    testContext = new CategoriesTestContext(prisma, jwtService);
     await testContext.init();
-    accessToken = await jwtService.signAsync({ sub: testContext.userId });
+    // accessToken est maintenant généré dans le testContext
   }, 30000);
 
   afterAll(async () => {
@@ -42,6 +42,7 @@ describe("GET /api/categories (e2e)", () => {
     const res = await request(app.getHttpServer())
       .get("/api/categories?page=1&limit=5")
       .set("Authorization", `Bearer ${accessToken}`)
+      .set("Authorization", `Bearer ${testContext.accessToken}`)
       .expect(200);
 
     expect(Array.isArray(res.body.data)).toBe(true);

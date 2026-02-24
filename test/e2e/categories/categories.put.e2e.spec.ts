@@ -25,6 +25,22 @@ describe("Categories E2E - PUT /api/categories/:id", () => {
     prisma = moduleFixture.get<PrismaService>(PrismaService);
     jwtService = moduleFixture.get<JwtService>(JwtService);
 
+    testContext = new CategoriesTestContext(prisma, jwtService);
+    await testContext.init();
+    // accessToken est maintenant généré dans le testContext
+  }, 30000);
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    await app.init();
+
+    prisma = moduleFixture.get<PrismaService>(PrismaService);
+    jwtService = moduleFixture.get<JwtService>(JwtService);
+
     testContext = new CategoriesTestContext(prisma);
     await testContext.init();
     accessToken = await jwtService.signAsync({ sub: testContext.userId });
@@ -40,6 +56,9 @@ describe("Categories E2E - PUT /api/categories/:id", () => {
     const res = await request(app.getHttpServer())
       .put(`/api/categories/${testContext.existingCategoryId}`)
       .set("Authorization", `Bearer ${accessToken}`)
+      .set("Authorization", `Bearer ${testContext.accessToken}`)
+      .set("Authorization", `Bearer ${testContext.accessToken}`)
+      .set("Authorization", `Bearer ${testContext.accessToken}`)
       .send({
         label: "Label Modifié",
         color: "#00FF00",

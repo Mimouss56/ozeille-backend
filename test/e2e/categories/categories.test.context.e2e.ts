@@ -1,3 +1,4 @@
+import { JwtService } from "@nestjs/jwt";
 import { PrismaService } from "src/prisma/prisma.service";
 
 import { CategoriesDataset } from "./categories.dataset.e2e";
@@ -6,11 +7,16 @@ export class CategoriesTestContext {
   public userId: string;
   public budgetId: string;
   public existingCategoryId: string;
+  public existingCategoryLabel: string;
+  public accessToken: string;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwtService?: JwtService,
+  ) {}
 
   async init(): Promise<void> {
-    await this.cleanup(); // Nettoyage préventif crucial
+    await this.cleanup();
 
     const bcrypt = await import("bcrypt");
     const hashedPassword = await bcrypt.default.hash(CategoriesDataset.user.password, 10);
@@ -43,6 +49,12 @@ export class CategoriesTestContext {
       },
     });
     this.existingCategoryId = category.id;
+    this.existingCategoryLabel = category.label;
+
+    // Génération du token si JwtService fourni
+    if (this.jwtService) {
+      this.accessToken = await this.jwtService.signAsync({ sub: this.userId });
+    }
   }
 
   async cleanup(): Promise<void> {
