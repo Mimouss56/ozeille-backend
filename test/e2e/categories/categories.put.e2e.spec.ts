@@ -53,9 +53,6 @@ describe("Categories E2E - PUT /api/categories/:id", () => {
     const res = await request(app.getHttpServer())
       .put(`/api/categories/${testContext.existingCategoryId}`)
       .set("Authorization", `Bearer ${testContext.accessToken}`)
-      .set("Authorization", `Bearer ${testContext.accessToken}`)
-      .set("Authorization", `Bearer ${testContext.accessToken}`)
-      .set("Authorization", `Bearer ${testContext.accessToken}`)
       .send({
         label: "Label Modifié",
         color: "#00FF00",
