@@ -60,6 +60,13 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+        
+      - name: Force Test Environment Variables
+        run: |
+            # On crée maintenant un .env.test !
+            echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/testdb" > .env.test
+            # (On peut aussi créer le .env par précaution pour Prisma CLI si besoin)
+            echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/testdb" > .env
 
       - name: Generate Prisma Client
         run: |
