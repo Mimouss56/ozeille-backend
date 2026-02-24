@@ -12,7 +12,6 @@ describe("Categories E2E - PUT /api/categories/:id", () => {
   let prisma: PrismaService;
   let jwtService: JwtService;
   let testContext: CategoriesTestContext;
-  let accessToken: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -54,7 +53,7 @@ describe("Categories E2E - PUT /api/categories/:id", () => {
   it("doit mettre à jour une catégorie existante", async () => {
     const res = await request(app.getHttpServer())
       .put(`/api/categories/${testContext.existingCategoryId}`)
-      .set("Authorization", `Bearer ${accessToken}`)
+      .set("Authorization", `Bearer ${testContext.accessToken}`)
       .set("Authorization", `Bearer ${testContext.accessToken}`)
       .set("Authorization", `Bearer ${testContext.accessToken}`)
       .set("Authorization", `Bearer ${testContext.accessToken}`)
@@ -77,7 +76,7 @@ describe("Categories E2E - PUT /api/categories/:id", () => {
   it("doit retourner 404 si la catégorie à modifier n'existe pas", async () => {
     const res = await request(app.getHttpServer())
       .put(`/api/categories/123e4567-e89b-12d3-a456-426614174000`)
-      .set("Authorization", `Bearer ${accessToken}`)
+      .set("Authorization", `Bearer ${testContext.accessToken}`)
       .send({
         label: "Ghost Category",
       })
@@ -89,7 +88,7 @@ describe("Categories E2E - PUT /api/categories/:id", () => {
   it("doit retourner 400 si on envoie une couleur au mauvais format", async () => {
     const res = await request(app.getHttpServer())
       .put(`/api/categories/${testContext.existingCategoryId}`)
-      .set("Authorization", `Bearer ${accessToken}`)
+      .set("Authorization", `Bearer ${testContext.accessToken}`)
       .send({
         color: "pas-une-couleur",
       })

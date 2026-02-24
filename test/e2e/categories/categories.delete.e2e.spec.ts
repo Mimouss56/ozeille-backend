@@ -26,15 +26,16 @@ describe("Categories E2E - DELETE /api/categories/:id", () => {
     prisma = moduleFixture.get<PrismaService>(PrismaService);
     jwtService = moduleFixture.get<JwtService>(JwtService);
 
-    testContext = new CategoriesTestContext(prisma);
+    testContext = new CategoriesTestContext(prisma, jwtService);
     await testContext.init();
   }, 30000);
 
   beforeEach(async () => {
-    // Créer une catégorie fraîche avant chaque test de suppression
+    // Créer une catégorie fraîche avec un label unique avant chaque test de suppression
+    const uniqueLabel = `À supprimer ${Date.now()}-${Math.random()}`;
     const cat = await prisma.category.create({
       data: {
-        label: "À supprimer",
+        label: uniqueLabel,
         color: "#ffffff",
         userId: testContext.userId,
         budgetId: testContext.budgetId,
