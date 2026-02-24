@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 
@@ -11,16 +12,13 @@ export interface JwtPayload {
   exp?: number;
 }
 
-const JWT_SECRET = process.env.JWT_SECRET ?? "test-secret-key";
-
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor() {
+  constructor(configService: ConfigService) {
     super({
-      // On dit à Passport : "Cherche le token dans le Header 'Authorization' en tant que Bearer Token"
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: JWT_SECRET,
+      secretOrKey: configService.get<string>("JWT_SECRET", "test-secret-key"),
     });
   }
 

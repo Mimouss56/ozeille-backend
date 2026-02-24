@@ -67,15 +67,6 @@ export class CategoriesController {
     description: "The category with the given ID was not found.",
     type: ErrorResponse,
   })
-  @Get(":id")
-  @ApiOkResponse({
-    type: CategoryResponse,
-    description: "The category found",
-  })
-  @ApiNotFoundResponse({
-    description: "The category with the given ID was not found.",
-    type: ErrorResponse,
-  })
   @ApiQuery({ name: "expand", required: false, description: "Relations to expand (e.g. 'budget,transactions')" })
   async findOne(
     @Param("id", ParseUUIDPipe) id: string,

@@ -9,12 +9,11 @@ on:
       - "prisma/**"
       - "package*.json"
 
-permissions:
-  contents: read
-  pull-requests: read
-
 jobs:
   detect-changes:
+    permissions:
+      contents: read
+      pull-requests: read
     name: Detect Changed Modules
     runs-on: ubuntu-latest
     outputs:
@@ -85,6 +84,9 @@ jobs:
 
   # Lancement dynamique des tests
   test-modules:
+    permissions:
+      contents: read
+      pull-requests: read
     name: Test ${{ matrix.module }}
     needs: detect-changes
     if: needs.detect-changes.outputs.has-changes == 'true'
@@ -95,3 +97,34 @@ jobs:
     with:
       module: ${{ matrix.module }}
       node-version: "22"
+  test-cov:
+    permissions:
+      contents: read
+      pull-requests: read
+    name: Test Coverage
+    needs: test-modules
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm ci
+      - name: Run Coverage (npm run test:cov)
+        id: coverage
+        run: |
+          npm run test:cov || echo "::set-output name=failed::true"
+      - name: Parse Coverage Summary
+        if: steps.coverage.outputs.failed == 'true'
+        id: parse_cov
+        run: |
+          SUMMARY=$(cat coverage/coverage-summary.json | jq -r '.total.lines | "Lignes: "+(.covered|tostring)+"/"+(.total|tostring)+" ("+(.pct|tostring)+"%)"')
+          echo "::set-output name=summary::$SUMMARY"
+      - name: Upload Coverage Artifact (on failure)
+        if: steps.coverage.outputs.failed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
