@@ -39,13 +39,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # 1. Le garde-fou pour forcer l'environnement de test local
       - name: Force Test Environment Variables
         run: |
-          # On crée maintenant un .env.test !
           echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/testdb" > .env.test
-          # (On peut aussi créer le .env par précaution pour Prisma CLI si besoin)
           echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/testdb" > .env
-      
+
       - name: Generate
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
@@ -54,18 +53,42 @@ jobs:
           npx prisma migrate deploy
 
       - name: Full Lint & Typecheck
-        run: |
-          npm run lint
+        run: npm run lint
 
-      - name: Run ALL Tests
-        run: npm test -- --passWithNoTests --coverage --runInBand --detectOpenHandles
+      # --- EXÉCUTION SÉQUENTIELLE DES TESTS VIA PACKAGE.JSON ---
+
+      # 2. Exécution des Tests Unitaires (TU)
+      # On utilise "npm test" en forçant le dossier src/ pour isoler les TU
+      - name: Run Unit Tests (TU)
+        run: npm test -- --ci --testPathPattern="src/.*\.spec\.ts" --passWithNoTests
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           MAILER_HOST: localhost
           MAILER_PORT: 1025
-          NODE_ENV: test
+
+      # 3. Exécution des Tests d'Intégration (TI)
+      # Ton package.json gère déjà --runInBand et --detectOpenHandles pour test:ti
+      - name: Run Integration Tests (TI)
+        run: npm run test:ti -- --ci --passWithNoTests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          MAILER_HOST: localhost
+          MAILER_PORT: 1025
+
+      # 4. Exécution des Tests End-to-End (E2E)
+      # Ton package.json gère la config, on ajoute juste de quoi fermer les process pour la CI
+      - name: Run End-to-End Tests (E2E)
+        run: npm run test:e2e -- --ci --runInBand --detectOpenHandles --forceExit --passWithNoTests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          MAILER_HOST: localhost
+          MAILER_PORT: 1025
 
       # Optionnel : Build Docker "Dev" pour tester l'image
       - name: Build Docker (Check only)
