@@ -5,9 +5,10 @@ import { AppModule } from "src/app.module";
 import { PrismaService } from "src/prisma/prisma.service";
 import request from "supertest";
 
+import { BudgetsDataset } from "./budgets.dataset.e2e";
 import { BudgetsTestContext } from "./budgets.test.context.e2e";
 
-describe("Budgets E2E - GET /api/budgets", () => {
+describe("Budgets E2E - PUT /api/budgets/:id", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let jwtService: JwtService;
@@ -34,43 +35,29 @@ describe("Budgets E2E - GET /api/budgets", () => {
     await app.close();
   }, 10000);
 
-  it("doit retourner la liste des budgets", async () => {
+  it("doit mettre à jour un budget existant", async () => {
     const res = await request(app.getHttpServer())
-      .get("/api/budgets")
+      .put(`/api/budgets/${testContext.existingBudgetId}`)
       .set("Authorization", `Bearer ${testContext.accessToken}`)
+      .send({ label: "Budget Modifié", color: "#FFFFFF" })
       .expect(200);
 
-    expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.some((b: any) => b.id === testContext.existingBudgetId)).toBe(true);
+    expect(res.body.label).toBe("Budget Modifié");
+
+    // Restauration pour les autres tests
+    await prisma.budget.update({
+      where: { id: testContext.existingBudgetId },
+      data: { label: BudgetsDataset.existingBudget.label },
+    });
   });
 
-  it("doit retourner un budget spécifique par son id", async () => {
+  it("doit retourner 404 si le budget à modifier n'existe pas", async () => {
     const res = await request(app.getHttpServer())
-      .get(`/api/budgets/${testContext.existingBudgetId}`)
+      .put(`/api/budgets/123e4567-e89b-12d3-a456-426614174000`)
       .set("Authorization", `Bearer ${testContext.accessToken}`)
-      .expect(200);
+      .send({ label: "Ghost Budget", color: "#FFF" })
+      .expect(404);
 
-    expect(res.body.id).toBe(testContext.existingBudgetId);
-  });
-
-  it("doit retourner le summary des budgets", async () => {
-    const res = await request(app.getHttpServer())
-      .get("/api/budgets/summary?to=2026-03-31")
-      .set("Authorization", `Bearer ${testContext.accessToken}`)
-      .expect(200);
-
-    expect(res.body).toHaveProperty("balance");
-    expect(res.body).toHaveProperty("monthlySummaries");
-  });
-
-  it("doit inclure les catégories quand expand=categories est demandé", async () => {
-    const res = await request(app.getHttpServer())
-      .get("/api/budgets?expand=categories&from=2026-02-01&to=2026-02-28")
-      .set("Authorization", `Bearer ${testContext.accessToken}`)
-      .expect(200);
-
-    const budget = res.body.find((item: any) => item.id === testContext.existingBudgetId);
-    expect(budget.categories).toBeDefined();
-    expect(budget.categories.length).toBeGreaterThan(0);
+    expect(res.body.message).toMatch(/not found/i);
   });
 });
