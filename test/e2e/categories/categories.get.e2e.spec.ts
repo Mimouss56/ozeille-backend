@@ -41,7 +41,6 @@ describe("GET /api/categories (e2e)", () => {
   it("doit retourner la liste paginée des catégories", async () => {
     const res = await request(app.getHttpServer())
       .get("/api/categories?page=1&limit=5")
-      .set("Authorization", `Bearer ${accessToken}`)
       .set("Authorization", `Bearer ${testContext.accessToken}`)
       .expect(200);
 
@@ -52,7 +51,7 @@ describe("GET /api/categories (e2e)", () => {
   it("doit filtrer par label existant", async () => {
     const res = await request(app.getHttpServer())
       .get(`/api/categories?label=${encodeURIComponent(CategoriesDataset.existingCategory.label)}`)
-      .set("Authorization", `Bearer ${accessToken}`)
+      .set("Authorization", `Bearer ${testContext.accessToken}`)
       .expect(200);
 
     const data: CategoryDto[] = res.body.data;
@@ -63,7 +62,7 @@ describe("GET /api/categories (e2e)", () => {
   it("doit retourner une catégorie par son id", async () => {
     const res = await request(app.getHttpServer())
       .get(`/api/categories/${testContext.existingCategoryId}`)
-      .set("Authorization", `Bearer ${accessToken}`)
+      .set("Authorization", `Bearer ${testContext.accessToken}`)
       .expect(200);
 
     const cat: CategoryDto = res.body;
@@ -73,7 +72,7 @@ describe("GET /api/categories (e2e)", () => {
   it("doit retourner 404/400 si l'id n'existe pas ou est invalide", async () => {
     const res = await request(app.getHttpServer())
       .get(`/api/categories/123e4567-e89b-12d3-a456-426614174000`)
-      .set("Authorization", `Bearer ${accessToken}`);
+      .set("Authorization", `Bearer ${testContext.accessToken}`)
 
     expect([404, 400]).toContain(res.status);
   });

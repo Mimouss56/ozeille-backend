@@ -49,7 +49,6 @@ describe("POST /api/categories (e2e)", () => {
   it("doit retourner 400 si budgetId est manquant", async () => {
     const res = await request(app.getHttpServer())
       .post("/api/categories")
-      .set("Authorization", `Bearer ${accessToken}`)
       .set("Authorization", `Bearer ${testContext.accessToken}`)
       .send({
         label: "Test Catégorie",
@@ -64,7 +63,7 @@ describe("POST /api/categories (e2e)", () => {
   it("doit retourner 400 si budgetId n'est pas un uuid", async () => {
     const res = await request(app.getHttpServer())
       .post("/api/categories")
-      .set("Authorization", `Bearer ${accessToken}`)
+      .set("Authorization", `Bearer ${testContext.accessToken}`)
       .send({
         label: "Test Catégorie",
         budgetId: "not-a-uuid",
@@ -78,7 +77,7 @@ describe("POST /api/categories (e2e)", () => {
   it("doit retourner 400 si label est manquant", async () => {
     const res = await request(app.getHttpServer())
       .post("/api/categories")
-      .set("Authorization", `Bearer ${accessToken}`)
+      .set("Authorization", `Bearer ${testContext.accessToken}`)
       .send({
         budgetId: "123e4567-e89b-12d3-a456-426614174000",
         color: "#ffffff",
@@ -91,7 +90,7 @@ describe("POST /api/categories (e2e)", () => {
   it("doit créer une catégorie (succès)", async () => {
     const res = await request(app.getHttpServer())
       .post("/api/categories")
-      .set("Authorization", `Bearer ${accessToken}`)
+      .set("Authorization", `Bearer ${testContext.accessToken}`)
       .send({
         ...CategoriesDataset.newCategory,
         budgetId: testContext.budgetId,
@@ -105,7 +104,7 @@ describe("POST /api/categories (e2e)", () => {
   it("doit retourner 404/409 si le label existe déjà pour ce budget/utilisateur", async () => {
     const res = await request(app.getHttpServer())
       .post("/api/categories")
-      .set("Authorization", `Bearer ${accessToken}`)
+      .set("Authorization", `Bearer ${testContext.accessToken}`)
       .send({
         label: CategoriesDataset.existingCategory.label, // Utilisation du dataset
         budgetId: testContext.budgetId,
@@ -118,7 +117,7 @@ describe("POST /api/categories (e2e)", () => {
   it("doit retourner une erreur si budgetId n'existe pas en base", async () => {
     const res = await request(app.getHttpServer())
       .post("/api/categories")
-      .set("Authorization", `Bearer ${accessToken}`)
+      .set("Authorization", `Bearer ${testContext.accessToken}`)
       .send({
         label: "Catégorie Inexistante",
         budgetId: "123e4567-e89b-12d3-a456-426614174000",
