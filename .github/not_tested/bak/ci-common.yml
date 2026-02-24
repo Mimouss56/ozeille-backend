@@ -89,7 +89,7 @@ jobs:
         run: |
           if [ -d "test/ti/${{ inputs.module }}" ]; then
             echo "::group::Running TI tests for module: ${{ inputs.module }}"
-            npx jest --testPathPattern="test/ti/${{ inputs.module }}/.*\.ti\.spec\.ts" --runInBand
+            npx jest --testPathPatterns="test/ti/${{ inputs.module }}/.*\.ti\.spec\.ts" --runInBand
             echo "::endgroup::"
           else
             echo "ℹ️ No TI tests found for module ${{ inputs.module }}"
@@ -99,7 +99,7 @@ jobs:
         run: |
           if [ -d "test/e2e/${{ inputs.module }}" ]; then
             echo "::group::Running E2E tests for module: ${{ inputs.module }}"
-            npx jest --testPathPattern="test/e2e/${{ inputs.module }}/.*\.e2e\.spec\.ts" --runInBand --detectOpenHandles
+            npx jest --testPathPatterns="test/e2e/${{ inputs.module }}/.*\.e2e\.spec\.ts" --runInBand --detectOpenHandles
             echo "::endgroup::"
           else
             echo "ℹ️ No E2E tests found for module ${{ inputs.module }}"
