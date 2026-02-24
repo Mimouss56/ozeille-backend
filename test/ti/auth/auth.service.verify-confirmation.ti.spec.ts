@@ -112,9 +112,16 @@ describe("AuthService - verifyConfirmation (TI)", () => {
     mockUsersService.findByEmail.mockResolvedValue(mockUser);
     mockUsersService.confirmUserEmail.mockRejectedValue(new Error("DB error"));
 
+    // Mock temporairement console.error pour éviter le log d'erreur dans ce test
+    const originalConsoleError = console.error;
+    console.error = jest.fn();
+
     const result = await service.verifyConfirmation("token-error");
 
     expect(result).toBe(false);
     expect(mockRedisService.delWithPrefix).not.toHaveBeenCalled();
+
+    // Restaure le comportement normal de console.error
+    console.error = originalConsoleError;
   });
 });
