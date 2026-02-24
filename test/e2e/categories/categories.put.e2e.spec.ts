@@ -41,7 +41,6 @@ describe("Categories E2E - PUT /api/categories/:id", () => {
 
     testContext = new CategoriesTestContext(prisma);
     await testContext.init();
-    accessToken = await jwtService.signAsync({ sub: testContext.userId });
   }, 30000);
 
   afterAll(async () => {

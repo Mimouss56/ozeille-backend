@@ -32,7 +32,7 @@ describe("Categories E2E - DELETE /api/categories/:id", () => {
 
   beforeEach(async () => {
     // Créer une catégorie fraîche avec un label unique avant chaque test de suppression
-    const uniqueLabel = `À supprimer ${Date.now()}-${Math.random()}`;
+    const uniqueLabel = `del${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.slice(0, 32);
     const cat = await prisma.category.create({
       data: {
         label: uniqueLabel,
