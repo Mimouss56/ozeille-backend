@@ -8,17 +8,18 @@ import { RedisModule } from "src/redis/redis.module";
 import { UsersModule } from "src/users/users.module";
 
 import { AuthController } from "./controller/auth.controller";
+import { AuthRegisterController } from "./controller/auth.register.controller";
 import { AuthService } from "./services/auth.service";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 
 @Module({
-  controllers: [AuthController],
+  controllers: [AuthController, AuthRegisterController],
   imports: [
     PassportModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config) => ({
-        secret: config.get("JWT_SECRET", "test-secret-key"),
+        secret: config.get("JWT_SECRET", "default_secret"),
         signOptions: {
           expiresIn: config.get("JWT_EXPIRATION", "3600"),
         },

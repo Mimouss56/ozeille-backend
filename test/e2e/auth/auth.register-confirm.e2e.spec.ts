@@ -5,7 +5,8 @@ import { PrismaService } from "src/prisma/prisma.service";
 import { RedisService } from "src/redis/redis.module";
 import request from "supertest";
 
-import { AuthTestContext } from "./auth.dataset.context.e2e";
+import { AuthDataset } from "./auth.dataset.e2e";
+import { AuthTestContext } from "./auth.test.context.e2e";
 
 describe("POST /api/auth/register/confirm (e2e)", () => {
   let app: INestApplication;
@@ -30,25 +31,28 @@ describe("POST /api/auth/register/confirm (e2e)", () => {
 
   afterAll(async () => {
     if (redis) await redis.disconnect();
+    await testContext.cleanup();
     if (prisma) await prisma.$disconnect();
+    await app.close();
   }, 10000);
 
   it("devrait confirmer l'email avec un token valide", async () => {
-    await redis.set(`confirm-email-token:${testContext.testToken}`, testContext.testUser.email);
+    // On associe le token de test à l'utilisateur "unconfirmed"
+    await redis.set(`confirm-email-token:${AuthDataset.confirmToken}`, AuthDataset.unconfirmedUser.email);
 
     const response = await request(app.getHttpServer())
       .post("/api/auth/register/confirm")
-      .query({ token: testContext.testToken })
+      .query({ token: AuthDataset.confirmToken })
       .expect(204);
 
     expect(response.body).toEqual({});
 
     const user = await prisma.user.findUnique({
-      where: { email: testContext.testUser.email },
+      where: { email: AuthDataset.unconfirmedUser.email },
     });
-    expect(user?.confirmedAt).not.toBeNull();
+    expect(user?.confirmedAt).not.toBeNull(); // L'utilisateur est désormais confirmé
 
-    const redisValue = await redis.get(`confirm-email-token:${testContext.testToken}`);
+    const redisValue = await redis.get(`confirm-email-token:${AuthDataset.confirmToken}`);
     expect(redisValue).toBeNull();
   });
 
