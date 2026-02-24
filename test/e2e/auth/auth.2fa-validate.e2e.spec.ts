@@ -5,8 +5,8 @@ import { PrismaService } from "src/prisma/prisma.service";
 import { RedisService } from "src/redis/redis.module";
 import request from "supertest";
 
-import { AuthTestContext } from "./auth.test.context.e2e";
 import { AuthDataset } from "./auth.dataset.e2e";
+import { AuthTestContext } from "./auth.test.context.e2e";
 
 describe("POST /api/auth/2fa/validate (e2e)", () => {
   let app: INestApplication;
@@ -87,14 +87,14 @@ describe("POST /api/auth/2fa/validate (e2e)", () => {
 
   it("devrait retourner 401 si le code 2FA a expiré ou n'existe pas", async () => {
     const loginResponse = await request(app.getHttpServer()).post("/api/auth/login").send({
-      email: ctx.testUser.email,
-      password: ctx.testUser.password,
+      email: AuthDataset.confirmedUser.email,
+      password: AuthDataset.confirmedUser.password,
     });
 
     const tempToken = loginResponse.body.tempToken;
 
     const user = await prisma.user.findUnique({
-      where: { email: ctx.testUser.email },
+      where: { email: AuthDataset.confirmedUser.email },
     });
     await redis.del(`2fa:${user!.id}`);
 
@@ -160,14 +160,14 @@ describe("POST /api/auth/2fa/validate (e2e)", () => {
 
   it("ne devrait pas permettre la réutilisation d'un tempToken", async () => {
     const loginResponse = await request(app.getHttpServer()).post("/api/auth/login").send({
-      email: ctx.testUser.email,
-      password: ctx.testUser.password,
+      email: AuthDataset.confirmedUser.email,
+      password: AuthDataset.confirmedUser.password,
     });
 
     const tempToken = loginResponse.body.tempToken;
 
     const user = await prisma.user.findUnique({
-      where: { email: ctx.testUser.email },
+      where: { email: AuthDataset.confirmedUser.email },
     });
     const code = await redis.get(`2fa:${user!.id}`);
 
