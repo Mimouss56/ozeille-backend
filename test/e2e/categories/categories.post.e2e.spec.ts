@@ -27,7 +27,6 @@ describe("POST /api/categories (e2e)", () => {
 
     testContext = new CategoriesTestContext(prisma, jwtService);
     await testContext.init();
-    // accessToken est maintenant généré dans le testContext
   }, 30000);
 
   afterAll(async () => {

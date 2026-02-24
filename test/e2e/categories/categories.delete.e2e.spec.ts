@@ -28,7 +28,6 @@ describe("Categories E2E - DELETE /api/categories/:id", () => {
 
     testContext = new CategoriesTestContext(prisma);
     await testContext.init();
-    // accessToken est maintenant généré dans le testContext
   }, 30000);
 
   beforeEach(async () => {
