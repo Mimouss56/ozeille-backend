@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { RequestContext } from "src/common/interfaces/request-context.interface";
 import { PaginatedDatabaseResponse } from "src/common/types";
 import { Category } from "src/generated/prisma/client";
@@ -17,27 +17,27 @@ export class CategoriesService {
   }
 
   async create(ctx: RequestContext<CreateCategoryDto>): Promise<Category> {
-    const categoryExists = await this.repository.findByLabelAndUserId(ctx.input.label, ctx.userId);
-
+    const categoryExists = await this.repository.findByLabelAndUserIdAndBudgetId(
+      ctx.input.label,
+      ctx.userId,
+      ctx.input.budgetId,
+    );
     if (categoryExists) {
-      throw new NotFoundException("A category with this label already exists.");
+      throw new ConflictException("A category with this label already exists for this budget.");
     }
     return this.repository.create(ctx.userId, ctx.input);
   }
 
-  async findOne(ctx: RequestContext<unknown>, id: string): Promise<Category> {
-    const category = await this.repository.getById(ctx.userId, id);
-
-    // Sécurité : Si elle n'existe pas ou n'appartient pas au user
+  async findOne(ctx: RequestContext<unknown>, id: string, expand?: string): Promise<Category> {
+    const category = await this.repository.getById(ctx.userId, id, expand);
     if (!category) {
       throw new NotFoundException("The category with the given ID was not found.");
     }
-
     return category;
   }
 
-  async update(ctx: RequestContext<UpdateCategoryDto>, id: string): Promise<Category> {
-    return this.repository.updateOne(ctx.userId, id, ctx.input);
+  async update(ctx: RequestContext<UpdateCategoryDto>, id: string, expand?: string): Promise<Category> {
+    return this.repository.updateOne(ctx.userId, id, ctx.input, expand);
   }
 
   async remove(ctx: RequestContext<unknown>, id: string): Promise<Category> {

@@ -13,7 +13,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: testdb
+          POSTGRES_DB: test_db
         options: >-
           --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
         ports:
@@ -39,26 +39,62 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # 1. Le garde-fou pour forcer l'environnement de test local
+      - name: Force Test Environment Variables
+        run: |
+          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/test_db" > .env.test
+          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/test_db" > .env
+
       - name: Generate
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
         run: |
           npx prisma generate
           npx prisma migrate deploy
 
       - name: Full Lint & Typecheck
-        run: |
-          npm run lint
+        run: npm run lint
 
-      - name: Run ALL Tests
-        run: npm test -- --passWithNoTests --coverage --runInBand
+      # --- EXÉCUTION SÉQUENTIELLE DES TESTS VIA PACKAGE.JSON ---
+
+      # 2. Exécution des Tests Unitaires (TU)
+      # On utilise "npm test" en forçant le dossier src/ pour isoler les TU
+      - name: Run Unit Tests (TU)
+        run: npm test -- --ci --testPathPatterns="src/.*\.spec\.ts" --passWithNoTests
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           MAILER_HOST: localhost
           MAILER_PORT: 1025
-          NODE_ENV: test
+          JWT_SECRET: test-secret-key
+          JWT_EXPIRATION: 1d
+
+      # 3. Exécution des Tests d'Intégration (TI)
+      # Ton package.json gère déjà --runInBand et --detectOpenHandles pour test:ti
+      - name: Run Integration Tests (TI)
+        run: npm run test:ti -- --ci --passWithNoTests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          MAILER_HOST: localhost
+          MAILER_PORT: 1025
+          JWT_SECRET: test-secret-key
+          JWT_EXPIRATION: 1d
+
+      # 4. Exécution des Tests End-to-End (E2E)
+      # Ton package.json gère la config, on ajoute juste de quoi fermer les process pour la CI
+      - name: Run End-to-End Tests (E2E)
+        run: npm run test:e2e -- --ci --runInBand --detectOpenHandles --forceExit --passWithNoTests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          MAILER_HOST: localhost
+          MAILER_PORT: 1025
+          JWT_SECRET: test-secret-key
+          JWT_EXPIRATION: 1d
 
       # Optionnel : Build Docker "Dev" pour tester l'image
       - name: Build Docker (Check only)

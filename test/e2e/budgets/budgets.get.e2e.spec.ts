@@ -2,18 +2,16 @@ import { type INestApplication } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { Test, TestingModule } from "@nestjs/testing";
 import { AppModule } from "src/app.module";
-import type { CategoryDto } from "src/categories/dto/category.dto";
 import { PrismaService } from "src/prisma/prisma.service";
 import request from "supertest";
 
-import { CategoriesDataset } from "./categories.dataset.e2e";
-import { CategoriesTestContext } from "./categories.test.context.e2e";
+import { BudgetsTestContext } from "./budgets.test.context.e2e";
 
-describe("GET /api/categories (e2e)", () => {
+describe("Budgets E2E - GET /api/budgets", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let jwtService: JwtService;
-  let testContext: CategoriesTestContext;
+  let testContext: BudgetsTestContext;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -26,7 +24,7 @@ describe("GET /api/categories (e2e)", () => {
     prisma = moduleFixture.get<PrismaService>(PrismaService);
     jwtService = moduleFixture.get<JwtService>(JwtService);
 
-    testContext = new CategoriesTestContext(prisma, jwtService);
+    testContext = new BudgetsTestContext(prisma, jwtService);
     await testContext.init();
   }, 30000);
 
@@ -36,42 +34,43 @@ describe("GET /api/categories (e2e)", () => {
     await app.close();
   }, 10000);
 
-  it("doit retourner la liste paginée des catégories", async () => {
+  it("doit retourner la liste des budgets", async () => {
     const res = await request(app.getHttpServer())
-      .get("/api/categories?page=1&limit=5")
+      .get("/api/budgets")
       .set("Authorization", `Bearer ${testContext.accessToken}`)
       .expect(200);
 
-    expect(Array.isArray(res.body.data)).toBe(true);
-    expect(res.body.data.length).toBeLessThanOrEqual(5);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.some((b) => b.id === testContext.existingBudgetId)).toBe(true);
   });
 
-  it("doit filtrer par label existant", async () => {
+  it("doit retourner un budget spécifique par son id", async () => {
     const res = await request(app.getHttpServer())
-      .get(`/api/categories?label=${encodeURIComponent(CategoriesDataset.existingCategory.label)}`)
+      .get(`/api/budgets/${testContext.existingBudgetId}`)
       .set("Authorization", `Bearer ${testContext.accessToken}`)
       .expect(200);
 
-    const data: CategoryDto[] = res.body.data;
-    expect(Array.isArray(data)).toBe(true);
-    expect(data.some((cat) => cat.label === CategoriesDataset.existingCategory.label)).toBe(true);
+    expect(res.body.id).toBe(testContext.existingBudgetId);
   });
 
-  it("doit retourner une catégorie par son id", async () => {
+  it("doit retourner le summary des budgets", async () => {
     const res = await request(app.getHttpServer())
-      .get(`/api/categories/${testContext.existingCategoryId}`)
+      .get("/api/budgets/summary?to=2026-03-31")
       .set("Authorization", `Bearer ${testContext.accessToken}`)
       .expect(200);
 
-    const cat: CategoryDto = res.body;
-    expect(cat.id).toBe(testContext.existingCategoryId);
+    expect(res.body).toHaveProperty("balance");
+    expect(res.body).toHaveProperty("monthlySummaries");
   });
 
-  it("doit retourner 404/400 si l'id n'existe pas ou est invalide", async () => {
+  it("doit inclure les catégories quand expand=categories est demandé", async () => {
     const res = await request(app.getHttpServer())
-      .get(`/api/categories/123e4567-e89b-12d3-a456-426614174000`)
+      .get("/api/budgets?expand=categories&from=2026-02-01&to=2026-02-28")
       .set("Authorization", `Bearer ${testContext.accessToken}`)
+      .expect(200);
 
-    expect([404, 400]).toContain(res.status);
+    const budget = res.body.find((item) => item.id === testContext.existingBudgetId);
+    expect(budget.categories).toBeDefined();
+    expect(budget.categories.length).toBeGreaterThan(0);
   });
 });

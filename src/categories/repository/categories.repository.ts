@@ -11,9 +11,27 @@ import { UpdateCategoryRequest } from "../dto/update-category.dto";
 export class CategoriesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getAll(userId: string, { limit, page }: CategoryFilters): Promise<PaginatedDatabaseResponse<Category>> {
+  async getAll(userId: string, params: CategoryFilters): Promise<PaginatedDatabaseResponse<Category>> {
+    const { limit, page, expand } = params;
     const skip = (page - 1) * limit;
     const take = limit;
+
+    // Gestion du paramètre expand (transactions, budget, etc.)
+    const expandMap: Record<string, unknown> = {
+      transactions: { transactions: true },
+      budget: { budget: true },
+    };
+    const expands = expand ? expand.split(",") : [];
+    const include =
+      expands.length > 0
+        ? expands.reduce((acc, currentExpand) => {
+            if (expandMap[currentExpand]) {
+              return { ...acc, ...expandMap[currentExpand] };
+            }
+            return acc;
+          }, {})
+        : undefined;
+
     const [categories, count] = await this.prisma.$transaction([
       this.prisma.category.findMany({
         where: { userId },
@@ -22,7 +40,7 @@ export class CategoriesRepository {
         orderBy: {
           label: "asc",
         },
-        include: { budget: true },
+        include,
       }),
       this.prisma.category.count({
         where: { userId },
@@ -50,22 +68,49 @@ export class CategoriesRepository {
     });
   }
 
-  async getById(userId: string, id: string): Promise<Category | null> {
+  async getById(userId: string, id: string, expand?: string): Promise<Category | null> {
+    const expandMap: Record<string, unknown> = {
+      transactions: { transactions: true },
+      budget: { budget: true },
+    };
+    const expands = expand ? expand.split(",") : [];
+    const include =
+      expands.length > 0
+        ? expands.reduce((acc, currentExpand) => {
+            if (expandMap[currentExpand]) {
+              return { ...acc, ...expandMap[currentExpand] };
+            }
+            return acc;
+          }, {})
+        : undefined;
     return this.prisma.category.findFirst({
       where: { id, userId },
+      include,
     });
   }
 
-  async updateOne(userId: string, id: string, data: UpdateCategoryRequest): Promise<Category> {
-    const existingCategory = await this.getById(userId, id);
-
+  async updateOne(userId: string, id: string, data: UpdateCategoryRequest, expand?: string): Promise<Category> {
+    const existingCategory = await this.getById(userId, id, expand);
     if (!existingCategory) {
       throw new NotFoundException(`Category with ID ${id} not found`);
     }
-
+    const expandMap: Record<string, unknown> = {
+      transactions: { transactions: true },
+      budget: { budget: true },
+    };
+    const expands = expand ? expand.split(",") : [];
+    const include =
+      expands.length > 0
+        ? expands.reduce((acc, currentExpand) => {
+            if (expandMap[currentExpand]) {
+              return { ...acc, ...expandMap[currentExpand] };
+            }
+            return acc;
+          }, {})
+        : undefined;
     return this.prisma.category.update({
       where: { id },
-      include: { budget: true },
+      include,
       data,
     });
   }
@@ -82,9 +127,9 @@ export class CategoriesRepository {
     });
   }
 
-  async findByLabelAndUserId(label: string, userId: string): Promise<Category | null> {
+  async findByLabelAndUserIdAndBudgetId(label: string, userId: string, budgetId: string): Promise<Category | null> {
     return this.prisma.category.findFirst({
-      where: { label, userId },
+      where: { label, userId, budgetId },
     });
   }
 }
