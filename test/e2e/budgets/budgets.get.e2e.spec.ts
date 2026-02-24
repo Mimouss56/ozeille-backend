@@ -41,7 +41,7 @@ describe("Budgets E2E - GET /api/budgets", () => {
       .expect(200);
 
     expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.some((b: any) => b.id === testContext.existingBudgetId)).toBe(true);
+    expect(res.body.some((b) => b.id === testContext.existingBudgetId)).toBe(true);
   });
 
   it("doit retourner un budget spécifique par son id", async () => {

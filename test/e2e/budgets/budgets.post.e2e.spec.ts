@@ -59,6 +59,6 @@ describe("Budgets E2E - POST /api/budgets", () => {
       .send({ color: "#FFF" })
       .expect(400);
 
-    expect(res.body.errors.some((error: any) => error.path?.includes("label"))).toBe(true);
+    expect(res.body.errors.some((error) => error.path?.includes("label"))).toBe(true);
   });
 });
