@@ -28,21 +28,6 @@ describe("Categories E2E - PUT /api/categories/:id", () => {
     await testContext.init();
   }, 30000);
 
-  beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
-
-    prisma = moduleFixture.get<PrismaService>(PrismaService);
-    jwtService = moduleFixture.get<JwtService>(JwtService);
-
-    testContext = new CategoriesTestContext(prisma);
-    await testContext.init();
-  }, 30000);
-
   afterAll(async () => {
     if (testContext) await testContext.cleanup();
     if (prisma) await prisma.$disconnect();
