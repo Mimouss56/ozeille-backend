@@ -6,6 +6,7 @@ import { z } from "zod";
 const transactionFilterSchema = paginationFilterSchema.extend({
   label: z.string().optional(),
   categoryId: z.uuid().optional(),
+  amount: z.number().optional(),
   "order[dueAt]": directionEnumSchema.default("desc"),
   "exists[pointedAt]": booleanEnumSchema.optional(),
   from: z.iso.date().optional().describe("Minimum date inclusive for transaction filter"),
