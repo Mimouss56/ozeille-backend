@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PaginatedDatabaseResponse } from "src/common/types";
 import { Transaction } from "src/generated/prisma/client";
+import { TransactionWhereInput } from "src/generated/prisma/models";
 import { PrismaService } from "src/prisma/prisma.service";
 
 import { CreateTransactionRequest } from "../dto/create-transaction.dto";
@@ -13,15 +14,17 @@ export class TransactionsRepository {
 
   async getAll(params: TransactionFilters, userId: string): Promise<PaginatedDatabaseResponse<Transaction>> {
     const { page, limit } = params;
-    const { "order[dueAt]": orderDueAt, categoryId, from, to } = params;
+    const { "order[dueAt]": orderDueAt, categoryId, from, to, label, amount } = params;
     const skip = (page - 1) * limit;
     const take = limit;
     // const isPointedAt = pointedAt ? { not: null } : null;
     const fromDate = from ? new Date(from) : undefined;
     const toDate = to ? new Date(to) : undefined;
-    const where = {
+    const where: TransactionWhereInput = {
       userId,
-      categoryId: categoryId || undefined,
+      categoryId,
+      label: { contains: label, mode: "insensitive" },
+      amount,
       dueAt: {
         ...(fromDate && { gte: fromDate }),
         ...(toDate && { lte: toDate }),
